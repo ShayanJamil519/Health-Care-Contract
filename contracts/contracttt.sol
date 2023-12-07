@@ -17,6 +17,7 @@ contract HealthcareDataToken is ERC20, Ownable {
         uint256 expiration; // Timestamp for data expiration
         address[] accessList; // List of addresses with access to data
     }
+    bool public locked=false;
     mapping(address => HealthData) public patientData;
     mapping(address => mapping(address => bool)) public accessAllowed;
 
@@ -25,6 +26,16 @@ contract HealthcareDataToken is ERC20, Ownable {
     event DataPurchased(address indexed purchaser, address indexed patient, uint256 price);
     event AccessGranted(address indexed patient, address indexed user);
     event AccessRevoked(address indexed patient, address indexed user);
+
+    //modifiers
+
+    // modifier nonReentrant() {
+    //     require(!locked, "Reentrant call");
+    //     locked = true;
+    //     _;
+    //     locked = false;
+    // }
+
 
     //functions or methods
 
@@ -46,8 +57,25 @@ contract HealthcareDataToken is ERC20, Ownable {
         return (patientData[_patient].ownerOfData,patientData[_patient].dataHash, patientData[_patient].price, patientData[_patient].isForSale, patientData[_patient].expiration);
     }
 
-    function purchaseData(address _patient) external payable {
-        // Reentrancy is a type of attack where an external contract calls back into the current contract before the first invocation is completed. This can lead to unexpected behavior and potentially result in financial losses or other security issues.
+    // function purchaseData(address _patient) external payable {
+    //     // Reentrancy is a type of attack where an external contract calls back into the current contract before the first invocation is completed. This can lead to unexpected behavior and potentially result in financial losses or other security issues.
+    //     require(patientData[_patient].isForSale, "Data is not for sale");
+    //     require(msg.value >= patientData[_patient].price, "Insufficient funds to purchase data");
+    //     require(block.timestamp < patientData[_patient].expiration, "Data has expired");
+
+    //     uint256 fee = (msg.value * 5) / 100; // 5% fee
+    //     uint256 amountToPatient = msg.value - fee;
+
+    //     payable(owner()).transfer(fee); // Transfer fee to contract owner
+    //     payable(_patient).transfer(amountToPatient); // Transfer funds to the patient
+
+    //     patientData[_patient].isForSale = false;
+    //     _transfer(_patient, msg.sender, patientData[_patient].price); // Transfer tokens
+
+    //     emit DataPurchased(msg.sender, _patient, patientData[_patient].price);
+    // }
+
+    function purchaseData(address _patient) external payable  {
         require(patientData[_patient].isForSale, "Data is not for sale");
         require(msg.value >= patientData[_patient].price, "Insufficient funds to purchase data");
         require(block.timestamp < patientData[_patient].expiration, "Data has expired");
@@ -55,8 +83,11 @@ contract HealthcareDataToken is ERC20, Ownable {
         uint256 fee = (msg.value * 5) / 100; // 5% fee
         uint256 amountToPatient = msg.value - fee;
 
-        payable(owner()).transfer(fee); // Transfer fee to contract owner
-        payable(_patient).transfer(amountToPatient); // Transfer funds to the patient
+        (bool success, ) = payable(owner()).call{value: fee}(""); // Transfer fee to contract owner
+        require(success, "Fee transfer failed");
+
+        (success, ) = payable(_patient).call{value: amountToPatient}(""); // Transfer funds to the patient
+        require(success, "Amount to patient transfer failed");
 
         patientData[_patient].isForSale = false;
         _transfer(_patient, msg.sender, patientData[_patient].price); // Transfer tokens
