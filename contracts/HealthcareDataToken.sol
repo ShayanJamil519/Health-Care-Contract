@@ -5,6 +5,7 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract HealthcareDataToken is ERC20, Ownable {
 
@@ -18,8 +19,10 @@ contract HealthcareDataToken is ERC20, Ownable {
         address[] accessList; // List of addresses with access to data
     }
     bool public locked=false;
+    bool private reentrancyLock = false;
     mapping(address => HealthData) public patientData;
     mapping(address => mapping(address => bool)) public accessAllowed;
+    using Math for uint256;
 
     //events
     event HealthDataUpdated(address indexed patient, string dataHash, uint256 price, uint256 expiration);
@@ -36,6 +39,17 @@ contract HealthcareDataToken is ERC20, Ownable {
     //     locked = false;
     // }
 
+     modifier nonReentrant() {
+        require(!reentrancyLock, "Reentrant call");
+        reentrancyLock = true;
+        _;
+        reentrancyLock = false;
+    }
+
+    modifier onlyPatientOrOwner() {
+        require(msg.sender == patientData[msg.sender].ownerOfData || msg.sender == owner(), "Unauthorized access");
+        _;
+    }
 
     //functions or methods
 
@@ -75,13 +89,16 @@ contract HealthcareDataToken is ERC20, Ownable {
     //     emit DataPurchased(msg.sender, _patient, patientData[_patient].price);
     // }
 
-    function purchaseData(address _patient) external payable  {
+    function purchaseData(address _patient) external payable nonReentrant() {
         require(patientData[_patient].isForSale, "Data is not for sale");
         require(msg.value >= patientData[_patient].price, "Insufficient funds to purchase data");
         require(block.timestamp < patientData[_patient].expiration, "Data has expired");
 
-        uint256 fee = (msg.value * 5) / 100; // 5% fee
-        uint256 amountToPatient = msg.value - fee;
+        // uint256 fee = (msg.value * 5) / 100; // 5% fee
+        // uint256 amountToPatient = msg.value - fee;
+        (bool result,uint256 feeInitial) = msg.value.tryMul(5); // 5% fee
+        (bool resultDiv,uint256 fee) = feeInitial.tryDiv(100); // 5% fee
+        (bool resultsub,uint256 amountToPatient ) = msg.value.trySub(fee);
 
         (bool success, ) = payable(owner()).call{value: fee}(""); // Transfer fee to contract owner
         require(success, "Fee transfer failed");
@@ -95,15 +112,13 @@ contract HealthcareDataToken is ERC20, Ownable {
         emit DataPurchased(msg.sender, _patient, patientData[_patient].price);
     }
 
-    function grantAccess(address _patient, address _to) external {
-        require(msg.sender == _patient, "Access can only be granted by the patient");
+    function grantAccess(address _patient, address _to) external onlyPatientOrOwner() {
         patientData[_patient].accessList.push(_to);
         accessAllowed[_patient][_to] = true;
         emit AccessGranted(_patient, _to);
     }
 
-    function revokeAccess(address _patient, address _from) external {
-        require(msg.sender == _patient || msg.sender == owner(), "Only patient or owner can revoke access");
+    function revokeAccess(address _patient, address _from) external onlyPatientOrOwner() {
         accessAllowed[_patient][_from] = false;
         emit AccessRevoked(_patient, _from);
     }

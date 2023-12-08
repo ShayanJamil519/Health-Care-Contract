@@ -95,4 +95,64 @@ describe("HealthcareDataToken", function () {
   //   });
 
   // Add more test cases for other functions as needed
+  it("should purchase data with correct value", async function () {
+    const initialPatientBalance = await ethers.provider.getBalance(
+      patient.address
+    );
+
+    // Assume data is set for sale with a price of 100 wei
+    await tokenContract.connect(owner).setDataForSale(true);
+
+    // Buyer purchases data with exact price
+    await expect(() =>
+      tokenContract.connect(buyer).purchaseData(patient.address, { value: 100 })
+    ).to.changeEtherBalances([owner, patient, buyer], [5, 100, -100]);
+
+    // Ensure data is no longer for sale
+    const isForSale = await tokenContract.getHealthData(patient.address);
+    expect(isForSale).to.equal(false);
+
+    // Ensure the DataPurchased event is emitted
+    const purchaseEvent = (await tokenContract.queryFilter("DataPurchased"))[0];
+    expect(purchaseEvent.args.purchaser).to.equal(buyer.address);
+    expect(purchaseEvent.args.patient).to.equal(patient.address);
+    expect(purchaseEvent.args.price).to.equal(100);
+  });
+
+  it("should revert if insufficient funds are sent", async function () {
+    // Assume data is set for sale with a price of 100 wei
+    await tokenContract.connect(owner).setDataForSale(true);
+
+    // Buyer attempts to purchase data with insufficient funds
+    await expect(
+      tokenContract.connect(buyer).purchaseData(patient.address, { value: 50 })
+    ).to.be.revertedWith("Insufficient funds to purchase data");
+  });
+
+  it("should revert if data is not for sale", async function () {
+    // Buyer attempts to purchase data when it's not for sale
+    await expect(
+      tokenContract.connect(buyer).purchaseData(patient.address, { value: 100 })
+    ).to.be.revertedWith("Data is not for sale");
+  });
+
+  it("should revert if data has expired", async function () {
+    // Set health data with expiration time in the past
+    await tokenContract
+      .connect(patient)
+      .setHealthData(
+        "hash456",
+        100,
+        true,
+        Math.floor(Date.now() / 1000) - 3600
+      ); // Expired 1 hour ago
+
+    // Assume data is set for sale with a price of 100 wei
+    await tokenContract.connect(owner).setDataForSale(true);
+
+    // Buyer attempts to purchase expired data
+    await expect(
+      tokenContract.connect(buyer).purchaseData(patient.address, { value: 100 })
+    ).to.be.revertedWith("Data has expired");
+  });
 });
