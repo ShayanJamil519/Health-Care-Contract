@@ -9,6 +9,11 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract HealthcareDataToken is ERC20, Ownable {
 
+    /**
+    * @title HealthcareDataToken
+    * @dev A smart contract for managing healthcare data tokens.
+    */
+
     //state variables
     struct HealthData {
         string dataHash;
@@ -30,14 +35,9 @@ contract HealthcareDataToken is ERC20, Ownable {
     event AccessGranted(address indexed patient, address indexed user);
     event AccessRevoked(address indexed patient, address indexed user);
 
-    //modifiers
-
-    // modifier nonReentrant() {
-    //     require(!locked, "Reentrant call");
-    //     locked = true;
-    //     _;
-    //     locked = false;
-    // }
+    /**
+    * @dev Modifier to prevent reentrant calls.
+    */
 
      modifier nonReentrant() {
         require(!reentrancyLock, "Reentrant call");
@@ -46,6 +46,10 @@ contract HealthcareDataToken is ERC20, Ownable {
         reentrancyLock = false;
     }
 
+    /**
+     * @dev Modifier to restrict access to only the patient or owner.
+     */
+
     modifier onlyPatientOrOwner() {
         require(msg.sender == patientData[msg.sender].ownerOfData || msg.sender == owner(), "Unauthorized access");
         _;
@@ -53,9 +57,21 @@ contract HealthcareDataToken is ERC20, Ownable {
 
     //functions or methods
 
+    /**
+     * @dev Constructor for the HealthcareDataToken contract.
+    */
+
     constructor() ERC20("HealthcareDataToken", "HDT") Ownable(msg.sender){
         _mint(msg.sender, 1000000 * 10 ** decimals());
     }
+
+    /**
+     * @dev Sets health data for a patient.
+     * @param _dataHash The hash of the health data.
+     * @param _price The price of the health data.
+     * @param _isForSale A boolean indicating whether the data is for sale.
+     * @param _expiration The timestamp for data expiration.
+     */
 
     function setHealthData(string memory _dataHash, uint256 _price, bool _isForSale, uint256 _expiration) external {
         require(_expiration > block.timestamp, "Expiration time should be in the future");
@@ -67,28 +83,20 @@ contract HealthcareDataToken is ERC20, Ownable {
         emit HealthDataUpdated(msg.sender, _dataHash, _price, _expiration);
     }
 
-    function getHealthData(address _patient) external view returns (address,string memory, uint256, bool, uint256) {
-        return (patientData[_patient].ownerOfData,patientData[_patient].dataHash, patientData[_patient].price, patientData[_patient].isForSale, patientData[_patient].expiration);
+    /**
+     * @dev Gets health data for a given patient.
+     * @param _patient The address of the patient.
+     * @return dataOfPatient
+     */
+    function getHealthDataOfSinglePatient(address _patient) external view returns (HealthData memory) {
+        // return (patientData[_patient].ownerOfData,patientData[_patient].dataHash, patientData[_patient].price, patientData[_patient].isForSale, patientData[_patient].expiration);
+        return patientData[_patient];
     }
 
-    // function purchaseData(address _patient) external payable {
-    //     // Reentrancy is a type of attack where an external contract calls back into the current contract before the first invocation is completed. This can lead to unexpected behavior and potentially result in financial losses or other security issues.
-    //     require(patientData[_patient].isForSale, "Data is not for sale");
-    //     require(msg.value >= patientData[_patient].price, "Insufficient funds to purchase data");
-    //     require(block.timestamp < patientData[_patient].expiration, "Data has expired");
-
-    //     uint256 fee = (msg.value * 5) / 100; // 5% fee
-    //     uint256 amountToPatient = msg.value - fee;
-
-    //     payable(owner()).transfer(fee); // Transfer fee to contract owner
-    //     payable(_patient).transfer(amountToPatient); // Transfer funds to the patient
-
-    //     patientData[_patient].isForSale = false;
-    //     _transfer(_patient, msg.sender, patientData[_patient].price); // Transfer tokens
-
-    //     emit DataPurchased(msg.sender, _patient, patientData[_patient].price);
-    // }
-
+    /**
+     * @dev Purchases health data for a patient.
+     * @param _patient The address of the patient.
+     */
     function purchaseData(address _patient) external payable nonReentrant() {
         require(patientData[_patient].isForSale, "Data is not for sale");
         require(msg.value >= patientData[_patient].price, "Insufficient funds to purchase data");
@@ -112,23 +120,41 @@ contract HealthcareDataToken is ERC20, Ownable {
         emit DataPurchased(msg.sender, _patient, patientData[_patient].price);
     }
 
+    /**
+     * @dev Grants access to health data for a specific user.
+     * @param _patient The address of the patient.
+     * @param _to The address to grant access to.
+     */
     function grantAccess(address _patient, address _to) external onlyPatientOrOwner() {
         patientData[_patient].accessList.push(_to);
         accessAllowed[_patient][_to] = true;
         emit AccessGranted(_patient, _to);
     }
 
+    /**
+     * @dev Revokes access to health data for a specific user.
+     * @param _patient The address of the patient.
+     * @param _from The address to revoke access from.
+     */
     function revokeAccess(address _patient, address _from) external onlyPatientOrOwner() {
         accessAllowed[_patient][_from] = false;
         emit AccessRevoked(_patient, _from);
     }
-
+    /**
+     * @dev Transfers data to another address with access.
+     * @param _to The address to transfer data to.
+     * @param _amount The amount of data to transfer.
+     */
     function transferWithAccess(address _to, uint256 _amount) external {
         require(accessAllowed[msg.sender][_to], "Sender doesn't have access to share data with this address");
         require(patientData[msg.sender].price == _amount, "Incorrect amount for data access");
         _transfer(msg.sender, _to, _amount);
     }
 
+    /**
+     * @dev Sets whether the data is for sale.
+     * @param _isForSale A boolean indicating whether the data is for sale.
+     */
     function setDataForSale(bool _isForSale) external {
         require(msg.sender == owner() || msg.sender== patientData[msg.sender].ownerOfData, "Only owner or patient can set data for sale");
     
@@ -136,9 +162,45 @@ contract HealthcareDataToken is ERC20, Ownable {
     
         emit HealthDataUpdated(msg.sender, patientData[msg.sender].dataHash, patientData[msg.sender].price, patientData[msg.sender].expiration);
     }
+    
+    /**
+     * @dev Retrieves the balance of a specific patient.
+     * @param _patient The address of the patient.
+     * @return The balance of the patient in the token.
+     */
+    function getPatientBalance(address _patient) external view returns (uint256) {
+        return balanceOf(_patient);
+    }
+    
+    /**
+     * @dev Gets the access list for a given patient.
+     * @param _patient The address of the patient.
+     * @return An array of addresses with access to the patient's data.
+     */
 
     function getAccessList(address _patient) external view returns (address[] memory) {
         return patientData[_patient].accessList;
     }
+
+     /**
+     * @dev Retrieves the allowance granted to a spender by the owner.
+     * @param _owner The owner's address.
+     * @param _spender The spender's address.
+     * @return The allowance for the spender.
+     */
+    function getAllowance(address _owner, address _spender) external view returns (uint256) {
+        return allowance(_owner, _spender);
+    }
+
+     /**
+     * @dev Retrieves the total supply of the token.
+     * @return The total supply of the token.
+     */
+    function getTotalSupply() external view returns (uint256) {
+        return totalSupply();
+    }
+
+    
+
 
 }

@@ -96,49 +96,67 @@ describe("HealthcareDataToken", function () {
 
   // Add more test cases for other functions as needed
   it("should purchase data with correct value", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
     const initialPatientBalance = await ethers.provider.getBalance(
       patient.address
     );
 
     // Assume data is set for sale with a price of 100 wei
-    await tokenContract.connect(owner).setDataForSale(true);
+    await healthcareDataTokencontract.connect(owner).setDataForSale(true);
 
     // Buyer purchases data with exact price
     await expect(() =>
-      tokenContract.connect(buyer).purchaseData(patient.address, { value: 100 })
+      healthcareDataTokencontract
+        .connect(buyer)
+        .purchaseData(patient.address, { value: 100 })
     ).to.changeEtherBalances([owner, patient, buyer], [5, 100, -100]);
 
     // Ensure data is no longer for sale
-    const isForSale = await tokenContract.getHealthData(patient.address);
+    const isForSale = await healthcareDataTokencontract.getHealthData(
+      patient.address
+    );
     expect(isForSale).to.equal(false);
 
     // Ensure the DataPurchased event is emitted
-    const purchaseEvent = (await tokenContract.queryFilter("DataPurchased"))[0];
+    const purchaseEvent = (
+      await healthcareDataTokencontract.queryFilter("DataPurchased")
+    )[0];
     expect(purchaseEvent.args.purchaser).to.equal(buyer.address);
     expect(purchaseEvent.args.patient).to.equal(patient.address);
     expect(purchaseEvent.args.price).to.equal(100);
   });
 
   it("should revert if insufficient funds are sent", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
     // Assume data is set for sale with a price of 100 wei
-    await tokenContract.connect(owner).setDataForSale(true);
+    await healthcareDataTokencontract.connect(owner).setDataForSale(true);
 
     // Buyer attempts to purchase data with insufficient funds
     await expect(
-      tokenContract.connect(buyer).purchaseData(patient.address, { value: 50 })
+      healthcareDataTokencontract
+        .connect(buyer)
+        .purchaseData(patient.address, { value: 50 })
     ).to.be.revertedWith("Insufficient funds to purchase data");
   });
 
   it("should revert if data is not for sale", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
     // Buyer attempts to purchase data when it's not for sale
     await expect(
-      tokenContract.connect(buyer).purchaseData(patient.address, { value: 100 })
+      healthcareDataTokencontract
+        .connect(buyer)
+        .purchaseData(patient.address, { value: 100 })
     ).to.be.revertedWith("Data is not for sale");
   });
 
   it("should revert if data has expired", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
     // Set health data with expiration time in the past
-    await tokenContract
+    await healthcareDataTokencontract
       .connect(patient)
       .setHealthData(
         "hash456",
@@ -148,11 +166,37 @@ describe("HealthcareDataToken", function () {
       ); // Expired 1 hour ago
 
     // Assume data is set for sale with a price of 100 wei
-    await tokenContract.connect(owner).setDataForSale(true);
+    await healthcareDataTokencontract.connect(owner).setDataForSale(true);
 
     // Buyer attempts to purchase expired data
     await expect(
-      tokenContract.connect(buyer).purchaseData(patient.address, { value: 100 })
-    ).to.be.revertedWith("Data has expired");
+      healthcareDataTokencontract
+        .connect(buyer)
+        .purchaseData(patient.address, { value: 100 })
+    ).to.be.revertedWith("Expiration time should be in the future");
+  });
+
+  it("should prevent reentrancy attack during purchaseData", async () => {
+    // Set health data for the patient
+    await tokenContract
+      .connect(patient)
+      .setHealthData("hash", 10, true, 9999999999);
+
+    // Make the data for sale
+    await tokenContract.connect(patient).setDataForSale(true);
+
+    // Attacker attempts reentrancy attack
+    const attackPromise = mockContract
+      .connect(attacker)
+      .attack(tokenContract.address, 1);
+
+    // Check that the reentrancy guard is working correctly
+    await expect(attackPromise).to.be.revertedWith("Reentrant call");
+
+    // Check that the purchase did not occur
+    const patientBalance = await tokenContract
+      .connect(owner)
+      .balanceOf(patient.address);
+    expect(patientBalance).to.equal(initialSupply);
   });
 });
