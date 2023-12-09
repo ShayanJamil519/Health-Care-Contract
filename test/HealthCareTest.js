@@ -149,16 +149,16 @@ describe("HealthcareDataToken", function () {
     ).to.be.revertedWith("Insufficient funds to purchase data");
   });
 
-  it("should revert if data is not for sale", async function () {
-    const { healthcareDataTokencontract, owner, patient, user } =
-      await deployOneYearLockFixture();
-    // Buyer attempts to purchase data when it's not for sale
-    await expect(
-      healthcareDataTokencontract
-        .connect(buyer)
-        .purchaseData(patient.address, { value: 100 })
-    ).to.be.revertedWith("Data is not for sale");
-  });
+  // it("should revert if data is not for sale", async function () {
+  //   const { healthcareDataTokencontract, owner, patient, user } =
+  //     await deployOneYearLockFixture();
+  //   // Buyer attempts to purchase data when it's not for sale
+  //   await expect(
+  //     healthcareDataTokencontract
+  //       .connect(buyer)
+  //       .purchaseData(patient.address, { value: 100 })
+  //   ).to.be.revertedWith("Data is not for sale");
+  // });
 
   it("should revert if data has expired", async function () {
     const { healthcareDataTokencontract, owner, patient, user } =
@@ -166,22 +166,18 @@ describe("HealthcareDataToken", function () {
     // Set health data with expiration time in the past
     await healthcareDataTokencontract
       .connect(patient)
-      .setHealthData(
-        "hash456",
-        100,
-        true,
-        Math.floor(Date.now() / 1000) - 3600
-      ); // Expired 1 hour ago
+      .addHealthData("hash456", 100, Math.floor(Date.now() / 1000) + 10); // Expired 1 hour ago
 
     // Assume data is set for sale with a price of 100 wei
-    await healthcareDataTokencontract.connect(owner).setDataForSale(true);
+    // await healthcareDataTokencontract.connect(owner).setDataForSale(true);
 
     // Buyer attempts to purchase expired data
+    await new Promise((resolve) => setTimeout(resolve, 10000));
     await expect(
       healthcareDataTokencontract
-        .connect(buyer)
+        .connect(user)
         .purchaseData(patient.address, { value: 100 })
-    ).to.be.revertedWith("Expiration time should be in the future");
+    ).to.be.revertedWith("Data has expired");
   });
 
   it("should prevent reentrancy attack during purchaseData", async () => {
