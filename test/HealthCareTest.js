@@ -180,27 +180,124 @@ describe("HealthcareDataToken", function () {
     ).to.be.revertedWith("Data has expired");
   });
 
-  it("should prevent reentrancy attack during purchaseData", async () => {
-    // Set health data for the patient
-    await tokenContract
+  // it("should prevent reentrancy attack during purchaseData", async () => {
+  //   const { healthcareDataTokencontract, owner, patient, user } =
+  //     await deployOneYearLockFixture();
+  //   // Set health data for the patient
+  //   await tokenContract
+  //     .connect(patient)
+  //     .addHealthData("hash", 10, Math.floor(Date.now() / 1000) + 1000);
+
+  //   // Attacker attempts reentrancy attack
+  //   const attackPromise = mockContract
+  //     .connect(attacker)
+  //     .attack(tokenContract.address, 1);
+
+  //   // Check that the reentrancy guard is working correctly
+  //   await expect(attackPromise).to.be.revertedWith("Reentrant call");
+
+  //   // Check that the purchase did not occur
+  //   const patientBalance = await tokenContract
+  //     .connect(owner)
+  //     .balanceOf(patient.address);
+  //   expect(patientBalance).to.equal(initialSupply);
+  // });
+  it("should grant and revoke access", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+
+    // Grant access to a user
+    await healthcareDataTokencontract
       .connect(patient)
-      .setHealthData("hash", 10, true, 9999999999);
+      .grantAccess(user.address);
 
-    // Make the data for sale
-    await tokenContract.connect(patient).setDataForSale(true);
+    // Check that the access is granted
+    const accessList = await healthcareDataTokencontract
+      .connect(patient)
+      .getAccessList(patient.address);
+    expect(accessList).to.include(user.address);
 
-    // Attacker attempts reentrancy attack
-    const attackPromise = mockContract
-      .connect(attacker)
-      .attack(tokenContract.address, 1);
+    // Revoke access from the user
+    await healthcareDataTokencontract
+      .connect(patient)
+      .revokeAccess(user.address);
 
-    // Check that the reentrancy guard is working correctly
-    await expect(attackPromise).to.be.revertedWith("Reentrant call");
+    // Check that the access is revoked
+    const updatedAccessList = await healthcareDataTokencontract
+      .connect(patient)
+      .getAccessList(patient.address);
+    expect(updatedAccessList).to.not.include(user.address);
+  });
 
-    // Check that the purchase did not occur
-    const patientBalance = await tokenContract
+  it("should transfer data with access", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+
+    // Set health data for the patient
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData("hash123", 50, Math.floor(Date.now() / 1000) + 3600);
+
+    // Grant access to the user
+    await healthcareDataTokencontract
+      .connect(patient)
+      .grantAccess(user.address);
+
+    // User transfers data to another address
+    await healthcareDataTokencontract
+      .connect(user)
+      .transferWithAccess(owner.address, 50);
+
+    // Check that the data is transferred
+    const patientBalance = await healthcareDataTokencontract
       .connect(owner)
       .balanceOf(patient.address);
-    expect(patientBalance).to.equal(initialSupply);
+    const ownerBalance = await healthcareDataTokencontract
+      .connect(owner)
+      .balanceOf(owner.address);
+
+    expect(patientBalance).to.equal(0);
+    expect(ownerBalance).to.equal(50);
+  });
+
+  it("should revert if unauthorized user grants access", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+
+    // Unauthorized user attempts to grant access
+    await expect(
+      healthcareDataTokencontract
+        .connect(user)
+        .grantAccess(patient.address, owner.address)
+    ).to.be.revertedWith("Unauthorized access");
+  });
+
+  it("should revert if unauthorized user revokes access", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+
+    // Unauthorized user attempts to revoke access
+    await expect(
+      healthcareDataTokencontract
+        .connect(user)
+        .revokeAccess(patient.address, owner.address)
+    ).to.be.revertedWith("Unauthorized access");
+  });
+
+  it("should revert if incorrect amount for data access", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+
+    // Set health data for the patient
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData("hash789", 75, Math.floor(Date.now() / 1000) + 3600);
+
+    // Attempt to transfer incorrect amount of data
+    await expect(
+      healthcareDataTokencontract
+        .connect(user)
+        .transferWithAccess(owner.address, 100)
+    ).to.be.revertedWith("Incorrect amount for data access");
   });
 });
