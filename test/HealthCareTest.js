@@ -53,6 +53,48 @@ describe("HealthcareDataToken", function () {
     expect(healthData[5]).to.equal(expiration);
   });
 
+  it("should allow the purchase of health data", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+    const initialOwnerBalance = await healthcareDataTokencontract.balanceOf(
+      owner.address
+    );
+    const initialPurchaserBalance = await healthcareDataTokencontract.balanceOf(
+      user.address
+    );
+    const dataHash = "0x123456";
+    const name = "mydata";
+    const price = ethers.parseEther("1");
+    const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+
+    await healthcareDataTokencontract
+      .connect(owner)
+      .addHealthData(name, dataHash, price, expiration);
+
+    // Grant access to the purchaser
+    // await healthcareDataTokenContract
+    //   .connect(owner)
+    //   .grantAccess(patient.address, purchaser.address);
+
+    // Purchase health data
+    const dataPrice = ethers.parseEther("1");
+    await expect(
+      healthcareDataTokencontract
+        .connect(user)
+        .purchaseData(owner.address, { value: dataPrice })
+    ).to.emit(healthcareDataTokencontract, "DataPurchased");
+
+    const finalOwnerBalance = await healthcareDataTokencontract.balanceOf(
+      owner.address
+    );
+    const finalPurchaserBalance = await healthcareDataTokencontract.balanceOf(
+      user.address
+    );
+
+    // Check balances after the purchase
+    expect(finalOwnerBalance).to.equal(initialOwnerBalance - dataPrice);
+    expect(finalPurchaserBalance).to.equal(initialPurchaserBalance + dataPrice);
+  });
   // it("should purchase data", async function () {
   //   const { healthcareDataTokencontract, owner, patient, user } =
   //     await deployOneYearLockFixture();
@@ -63,28 +105,33 @@ describe("HealthcareDataToken", function () {
   //   const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
 
   //   await healthcareDataTokencontract
-  //     .connect(patient)
-  //     .addHealthData(dataHash, price, expiration);
+  //     .connect(owner)
+  //     .addHealthData("myname", dataHash, price, expiration);
 
-  //   const initialOwnerBalance = await ethers.provider.getBalance(
-  //     patient.address
-  //   );
+  //   const initialOwnerBalance = await ethers.provider.getBalance(owner.address);
   //   const initialContractBalance = await ethers.provider.getBalance(
   //     healthcareDataTokencontract.target
   //   );
 
   //   await expect(() =>
-  //     healthcareDataToken
-  //       .connect(owner)
-  //       .purchaseData(patient.address, { value: price })
-  //   ).to.changeEtherBalances([patient, healthcareDataToken], [-price, price]);
+  //     healthcareDataTokencontract
+  //       .connect(user)
+  //       .purchaseData(owner.address, { value: ethers.parseEther("2") })
+  //   ).to.changeEtherBalances(
+  //     [patient, healthcareDataTokencontract],
+  //     [-price, price]
+  //   );
 
-  //   const healthData = await healthcareDataToken.getHealthData(patient.address);
-  //   expect(healthData.isForSale).to.equal(false);
+  //   const healthData =
+  //     await healthcareDataTokencontract.getHealthDataOfSinglePatient(
+  //       patient.address
+  //     );
+  //   // expect(healthData.isForSale).to.equal(false);
+  //   console.log("hrh", healthData);
 
-  //   const finalOwnerBalance = await ethers.provider.getBalance(patient.address);
+  //   const finalOwnerBalance = await ethers.provider.getBalance(owner.address);
   //   const finalContractBalance = await ethers.provider.getBalance(
-  //     healthcareDataToken.address
+  //     healthcareDataTokencontract.address
   //   );
 
   //   expect(finalOwnerBalance).to.equal(initialOwnerBalance.add(price));
@@ -146,17 +193,6 @@ describe("HealthcareDataToken", function () {
         .purchaseData(patient.address, { value: 50 })
     ).to.be.revertedWith("Insufficient funds to purchase data");
   });
-
-  // it("should revert if data is not for sale", async function () {
-  //   const { healthcareDataTokencontract, owner, patient, user } =
-  //     await deployOneYearLockFixture();
-  //   // Buyer attempts to purchase data when it's not for sale
-  //   await expect(
-  //     healthcareDataTokencontract
-  //       .connect(buyer)
-  //       .purchaseData(patient.address, { value: 100 })
-  //   ).to.be.revertedWith("Data is not for sale");
-  // });
 
   it("should revert if data has expired", async function () {
     const { healthcareDataTokencontract, owner, patient, user } =
