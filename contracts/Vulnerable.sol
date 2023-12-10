@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 
-contract HealthcareDataTokenss is ERC20, Ownable {
+contract HealthcareDataTokenVulnerable is ERC20, Ownable {
     /**
      * @title HealthcareDataToken
      * @dev A smart contract for managing healthcare data tokens.

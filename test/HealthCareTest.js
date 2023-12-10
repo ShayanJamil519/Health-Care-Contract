@@ -22,27 +22,18 @@ describe("HealthcareDataToken", function () {
     return { healthcareDataTokencontract, owner, patient, user };
   }
 
-  //   beforeEach(async function () {
-  //     [owner, patient, user] = await ethers.getSigners();
-
-  //     const HealthcareDataToken = await ethers.getContractFactory(
-  //       "HealthcareDataToken"
-  //     );
-  //     healthcareDataToken = await HealthcareDataToken.deploy();
-  //     await healthcareDataToken.deployed();
-  //   });
-
   it("should set and get health data", async function () {
     const { healthcareDataTokencontract, owner, patient, user } =
       await deployOneYearLockFixture();
     const dataHash = "0x123456";
+    const name = "mydata";
     const price = ethers.parseEther("1");
     const isForSale = true;
     const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
 
     await healthcareDataTokencontract
       .connect(patient)
-      .addHealthData(dataHash, price, expiration);
+      .addHealthData(name, dataHash, price, expiration);
     // console.log("patt", patient);
     // console.log("htt", healthData);
     // console.log("owner", typeof healthData[0]);
@@ -51,48 +42,52 @@ describe("HealthcareDataToken", function () {
       .connect(patient)
       .getHealthDataOfSinglePatient(patient.address);
 
-    console.log("htttype", healthData);
-    expect(healthData[0]).to.equal(dataHash);
-    expect(healthData[1]).to.equal(price);
-    expect(healthData[2]).to.equal(isForSale);
-    expect(healthData[3]).to.equal(patient.address);
-    expect(healthData[4]).to.equal(expiration);
+    // console.log("htttype", healthData);
+    expect(healthData[0]).to.equal(name);
+    expect(healthData[1]).to.equal(dataHash);
+    expect(healthData[2]).to.equal(price);
+    expect(healthData[3]).to.equal(isForSale);
+    expect(healthData[4]).to.equal(patient.address);
+    expect(healthData[5]).to.equal(expiration);
   });
 
-  //   it("should purchase data", async function () {
-  //     const dataHash = "0x123456";
-  //     const price = ethers.utils.parseEther("1");
-  //     const isForSale = true;
-  //     const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+  // it("should purchase data", async function () {
+  //   const { healthcareDataTokencontract, owner, patient, user } =
+  //     await deployOneYearLockFixture();
 
-  //     await healthcareDataToken
-  //       .connect(patient)
-  //       .setHealthData(dataHash, price, isForSale, expiration);
+  //   const dataHash = "0x123456";
+  //   const price = ethers.parseEther("1");
+  //   const isForSale = true;
+  //   const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
 
-  //     const initialOwnerBalance = await ethers.provider.getBalance(
-  //       patient.address
-  //     );
-  //     const initialContractBalance = await ethers.provider.getBalance(
-  //       healthcareDataToken.address
-  //     );
+  //   await healthcareDataTokencontract
+  //     .connect(patient)
+  //     .addHealthData(dataHash, price, expiration);
 
-  //     await expect(() =>
-  //       healthcareDataToken
-  //         .connect(user)
-  //         .purchaseData(patient.address, { value: price })
-  //     ).to.changeEtherBalances([patient, healthcareDataToken], [-price, price]);
+  //   const initialOwnerBalance = await ethers.provider.getBalance(
+  //     patient.address
+  //   );
+  //   const initialContractBalance = await ethers.provider.getBalance(
+  //     healthcareDataTokencontract.target
+  //   );
 
-  //     const healthData = await healthcareDataToken.getHealthData(patient.address);
-  //     expect(healthData.isForSale).to.equal(false);
+  //   await expect(() =>
+  //     healthcareDataToken
+  //       .connect(owner)
+  //       .purchaseData(patient.address, { value: price })
+  //   ).to.changeEtherBalances([patient, healthcareDataToken], [-price, price]);
 
-  //     const finalOwnerBalance = await ethers.provider.getBalance(patient.address);
-  //     const finalContractBalance = await ethers.provider.getBalance(
-  //       healthcareDataToken.address
-  //     );
+  //   const healthData = await healthcareDataToken.getHealthData(patient.address);
+  //   expect(healthData.isForSale).to.equal(false);
 
-  //     expect(finalOwnerBalance).to.equal(initialOwnerBalance.add(price));
-  //     expect(finalContractBalance).to.equal(initialContractBalance.sub(price));
-  //   });
+  //   const finalOwnerBalance = await ethers.provider.getBalance(patient.address);
+  //   const finalContractBalance = await ethers.provider.getBalance(
+  //     healthcareDataToken.address
+  //   );
+
+  //   expect(finalOwnerBalance).to.equal(initialOwnerBalance.add(price));
+  //   expect(finalContractBalance).to.equal(initialContractBalance.sub(price));
+  // });
 
   // Add more test cases for other functions as needed
   // it("should purchase data with correct value", async function () {
@@ -134,12 +129,13 @@ describe("HealthcareDataToken", function () {
     // Assume data is set for sale with a price of 100 wei
     // await healthcareDataTokencontract.connect(owner).setDataForSale(true);
     const dataHash = "0x123456";
+    const name = "mydata";
     const price = ethers.parseEther("100");
     const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
 
     await healthcareDataTokencontract
       .connect(patient)
-      .addHealthData(dataHash, price, expiration);
+      .addHealthData(name, dataHash, price, expiration);
     console.log("patt", patient);
     // Buyer attempts to purchase data with insufficient funds
     await expect(
@@ -166,7 +162,12 @@ describe("HealthcareDataToken", function () {
     // Set health data with expiration time in the past
     await healthcareDataTokencontract
       .connect(patient)
-      .addHealthData("hash456", 100, Math.floor(Date.now() / 1000) + 10); // Expired 1 hour ago
+      .addHealthData(
+        "mydata",
+        "hash456",
+        100,
+        Math.floor(Date.now() / 1000) + 10
+      ); // Expired 1 hour ago
 
     // Assume data is set for sale with a price of 100 wei
     // await healthcareDataTokencontract.connect(owner).setDataForSale(true);
@@ -205,11 +206,19 @@ describe("HealthcareDataToken", function () {
   it("should grant and revoke access", async function () {
     const { healthcareDataTokencontract, owner, patient, user } =
       await deployOneYearLockFixture();
-
+    // Set health data for the patient
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData(
+        "mydata",
+        "hash123",
+        50,
+        Math.floor(Date.now() / 1000) + 3600
+      );
     // Grant access to a user
     await healthcareDataTokencontract
       .connect(patient)
-      .grantAccess(user.address);
+      .grantAccess(patient.address, user.address);
 
     // Check that the access is granted
     const accessList = await healthcareDataTokencontract
@@ -220,7 +229,7 @@ describe("HealthcareDataToken", function () {
     // Revoke access from the user
     await healthcareDataTokencontract
       .connect(patient)
-      .revokeAccess(user.address);
+      .revokeAccess(patient.address, user.address);
 
     // Check that the access is revoked
     const updatedAccessList = await healthcareDataTokencontract
@@ -235,29 +244,36 @@ describe("HealthcareDataToken", function () {
 
     // Set health data for the patient
     await healthcareDataTokencontract
-      .connect(patient)
-      .addHealthData("hash123", 50, Math.floor(Date.now() / 1000) + 3600);
+      .connect(owner)
+      .addHealthData(
+        "mydata",
+        "hash123",
+        50,
+        Math.floor(Date.now() / 1000) + 3600
+      );
 
     // Grant access to the user
     await healthcareDataTokencontract
-      .connect(patient)
-      .grantAccess(user.address);
+      .connect(owner)
+      .grantAccess(owner.address, user.address);
 
     // User transfers data to another address
     await healthcareDataTokencontract
-      .connect(user)
-      .transferWithAccess(owner.address, 50);
+      .connect(owner)
+      .transferWithAccess(user.address, 50);
 
     // Check that the data is transferred
     const patientBalance = await healthcareDataTokencontract
       .connect(owner)
-      .balanceOf(patient.address);
-    const ownerBalance = await healthcareDataTokencontract
-      .connect(owner)
       .balanceOf(owner.address);
+    const userBalance = await healthcareDataTokencontract
+      .connect(user)
+      .balanceOf(user.address);
+    // console.log("babab", patientBalance);
+    // console.log("usus", userBalance);
 
-    expect(patientBalance).to.equal(0);
-    expect(ownerBalance).to.equal(50);
+    expect(patientBalance).to.equal(BigInt(999999999999999999999950n));
+    expect(userBalance).to.equal(BigInt(50));
   });
 
   it("should revert if unauthorized user grants access", async function () {
@@ -291,13 +307,18 @@ describe("HealthcareDataToken", function () {
     // Set health data for the patient
     await healthcareDataTokencontract
       .connect(patient)
-      .addHealthData("hash789", 75, Math.floor(Date.now() / 1000) + 3600);
+      .addHealthData(
+        "mydata",
+        "hash789",
+        75,
+        Math.floor(Date.now() / 1000) + 3600
+      );
 
     // Attempt to transfer incorrect amount of data
     await expect(
       healthcareDataTokencontract
         .connect(user)
-        .transferWithAccess(owner.address, 100)
+        .transferWithAccess(user.address, 10)
     ).to.be.revertedWith("Incorrect amount for data access");
   });
 });

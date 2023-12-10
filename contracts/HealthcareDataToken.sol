@@ -13,6 +13,7 @@ contract HealthcareDataToken is ERC20, Ownable {
 
     //state variables
     struct HealthData {
+        string name;
         string dataHash;
         uint256 price;
         bool isForSale;
@@ -25,6 +26,7 @@ contract HealthcareDataToken is ERC20, Ownable {
     mapping(address => HealthData) public patientData;
     uint256 public HealtRecordCount;
     using Math for uint256;
+    HealthData[] public allUsersData;
 
     //events
     event HealthDataUpdated(
@@ -83,6 +85,7 @@ contract HealthcareDataToken is ERC20, Ownable {
      */
 
     function addHealthData(
+        string memory _name,
         string memory _dataHash,
         uint256 _price,
         uint256 _expiration
@@ -92,11 +95,28 @@ contract HealthcareDataToken is ERC20, Ownable {
             "Expiration time should be in the future"
         );
         HealtRecordCount++;
-        patientData[msg.sender].dataHash = _dataHash;
-        patientData[msg.sender].price = _price;
-        patientData[msg.sender].isForSale = true;
-        patientData[msg.sender].expiration = _expiration;
-        patientData[msg.sender].ownerOfData = msg.sender;
+        // patientData[msg.sender].dataHash = _dataHash;
+        // patientData[msg.sender].price = _price;
+        // patientData[msg.sender].isForSale = true;
+        // patientData[msg.sender].expiration = _expiration;
+        // patientData[msg.sender].ownerOfData = msg.sender;
+        
+
+        HealthData memory newHealthData = HealthData({
+            name:_name,
+            dataHash: _dataHash,
+            price: _price,
+            isForSale: true,
+            ownerOfData: msg.sender,
+            expiration: _expiration,
+            accessList: new address[](0) // Initialize an empty access list
+    });
+
+    // Update patientData mapping
+    patientData[msg.sender] = newHealthData;
+
+    // Push the new health data to the allUsersData array
+    allUsersData.push(newHealthData);
         emit HealthDataUpdated(msg.sender, _dataHash, _price, _expiration);
     }
 
@@ -239,5 +259,13 @@ contract HealthcareDataToken is ERC20, Ownable {
      */
     function getTotalSupply() external view returns (uint256) {
         return totalSupply();
+    }
+
+    /**
+     * @dev Retrieves the data of all users.
+     * @return All Users data
+     */
+    function getAllUsersData() external view returns (HealthData[] memory) {
+        return allUsersData;
     }
 }

