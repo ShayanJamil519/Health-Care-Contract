@@ -35,14 +35,16 @@ describe("HealthcareDataToken", function () {
 
     await healthcareDataTokencontract
       .connect(patient)
-      .addHealthData(name, dataHash, price, expiration);
+      .addHealthData(name, dataHash, price, expiration, {
+        value: ethers.parseEther("1"),
+      });
     // console.log("patt", patient);
     // console.log("htt", healthData);
     // console.log("owner", typeof healthData[0]);
     // console.log("owner", healthData[0]);
     const healthData = await healthcareDataTokencontract
       .connect(patient)
-      .getHealthDataOfSinglePatient(patient.address);
+      .getAllMyHealthRecords();
 
     // console.log("htttype", healthData);
     expect(healthData[0][0]).to.equal(name);
@@ -280,9 +282,7 @@ describe("HealthcareDataToken", function () {
 
     // Unauthorized user attempts to grant access
     await expect(
-      healthcareDataTokencontract
-        .connect(user)
-        .grantAccess(patient.address, owner.address)
+      healthcareDataTokencontract.connect(user).grantAccess(1, owner.address)
     ).to.be.revertedWith("Unauthorized access");
   });
 
