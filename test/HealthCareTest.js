@@ -16,17 +16,12 @@ describe("HealthcareDataToken", function () {
     const healthcareDataTokenVcontract =
       await HealthcareDataTokenVulnerable.deploy();
 
-    const malicious = await ethers.getContractFactory("MaliciousContract");
-    const maliciouscontract = await malicious.deploy(
-      healthcareDataTokenVcontract.target
-    );
     return {
       healthcareDataTokencontract,
       owner,
       patient,
       user,
       healthcareDataTokenVcontract,
-      maliciouscontract,
     };
   }
 
@@ -125,7 +120,7 @@ describe("HealthcareDataToken", function () {
         "hash456",
         100,
         Math.floor(Date.now() / 1000) + 20
-      ); // Expired 1 hour ago
+      );
 
     // Buyer attempts to purchase expired data
     await new Promise((resolve) => setTimeout(resolve, 21000));
@@ -135,65 +130,7 @@ describe("HealthcareDataToken", function () {
         .purchaseData(patient.address, 1, { value: 100 })
     ).to.be.revertedWith("Data has expired");
   });
-  //  it("should prevent reentrancy attack", async function () {
-  //       const { healthcareDataTokencontract, owner, patient, user,mcontract } =
-  //         await deployOneYearLockFixture();
 
-  //    // Set the healthcareDataToken contract address in the malicious contract
-  //    await mcontract.setHealthcareDataTokenContract(
-  //      healthcareDataTokencontract.address
-  //    );
-
-  //    // Set health data for the patient
-  //    await healthcareDataTokencontract
-  //      .connect(patient)
-  //      .addHealthData("hash123", 50, Math.floor(Date.now() / 1000) + 3600);
-
-  //    // Grant access to the attacker
-  //    await healthcareDataToken
-  //      .connect(user)
-  //      .grantAccess(patient.address, user.address);
-
-  //    // Perform the reentrancy attack
-  //    await maliciousContract
-  //      .connect(user)
-  //      .attack(patient.address, healthcareDataTokencontract.address);
-
-  //    // Check the results
-  //    const patientBalance = await healthcareDataToken
-  //      .connect(deployer)
-  //      .balanceOf(patient.address);
-  //    const attackerBalance = await healthcareDataToken
-  //      .connect(deployer)
-  //      .balanceOf(attacker.address);
-
-  //    // Ensure that the patient still owns the data and the attacker did not steal funds
-  //    expect(patientBalance).to.equal(50);
-  //    expect(attackerBalance).to.equal(0);
-  //  });
-
-  // it("should prevent reentrancy attack during purchaseData", async () => {
-  //   const { healthcareDataTokencontract, owner, patient, user } =
-  //     await deployOneYearLockFixture();
-  //   // Set health data for the patient
-  //   await tokenContract
-  //     .connect(patient)
-  //     .addHealthData("hash", 10, Math.floor(Date.now() / 1000) + 1000);
-
-  //   // Attacker attempts reentrancy attack
-  //   const attackPromise = mockContract
-  //     .connect(attacker)
-  //     .attack(tokenContract.address, 1);
-
-  //   // Check that the reentrancy guard is working correctly
-  //   await expect(attackPromise).to.be.revertedWith("Reentrant call");
-
-  //   // Check that the purchase did not occur
-  //   const patientBalance = await tokenContract
-  //     .connect(owner)
-  //     .balanceOf(patient.address);
-  //   expect(patientBalance).to.equal(initialSupply);
-  // });
   it("should grant access", async function () {
     const { healthcareDataTokencontract, owner, patient, user } =
       await deployOneYearLockFixture();
