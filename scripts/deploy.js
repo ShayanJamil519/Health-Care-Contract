@@ -1,11 +1,11 @@
 const hre = require("hardhat");
 
 async function main() {
-  const lock = await hre.ethers.deployContract("HealthcareDataTokenM");
+  const lock = await hre.ethers.deployContract("HealthcareDataToken");
 
   await lock.waitForDeployment();
 
-  console.log(`HealthcareDataToken with  deployed to ${lock.target}`);
+  console.log(`HealthcareDataToken  deployed to ${lock.target}`);
 }
 
 main().catch((error) => {

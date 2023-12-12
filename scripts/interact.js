@@ -1,5 +1,5 @@
 const hre = require("hardhat");
-const { contractABI, contractAddress } = require("../constants");
+const { contractAddress, contractABI } = require("../constants");
 
 async function interactWithContract() {
   // Connect to Ganache
@@ -8,8 +8,7 @@ async function interactWithContract() {
   );
 
   // Replace with your private key
-  const privateKey =
-    "0xdd388ef52890344bd50d0c08550b53386187686afb73b5f6b5335c1b71ac6380";
+  const privateKey = process.env.PRIVATE_KEY;
   const wallet = new ethers.Wallet(privateKey, ganacheProvider);
 
   // Create a contract instance
@@ -40,7 +39,8 @@ async function interactWithContract() {
 }
 
 // Run the interaction script
-// interactWithContract();
+interactWithContract();
+
 async function getWithContract() {
   // Connect to Ganache
   const ganacheProvider = new hre.ethers.JsonRpcProvider(
