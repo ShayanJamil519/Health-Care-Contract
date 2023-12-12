@@ -1,5 +1,3 @@
-
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -21,6 +19,7 @@ contract HealthcareDataToken is ERC20, Ownable {
         string dataHash;
         uint256 price;
         bool isForSale;
+        bool isBought;
         address ownerOfData;
         uint256 expiration;
         address[] accessList;
@@ -57,7 +56,10 @@ contract HealthcareDataToken is ERC20, Ownable {
     }
 
     modifier onlyPatientOrOwner(uint256 _id) {
-        require(msg.sender == owner()||healths[_id].ownerOfData==msg.sender, "Unauthorized access");
+        require(
+            msg.sender == owner() || healths[_id].ownerOfData == msg.sender,
+            "Unauthorized access"
+        );
         _;
     }
 
@@ -66,7 +68,7 @@ contract HealthcareDataToken is ERC20, Ownable {
      */
 
     constructor() ERC20("HealthcareDataToken", "HDT") Ownable(msg.sender) {
-        _mint(address(this), 1000000 * 10**decimals());
+        _mint(address(this), 1000000 * 10 ** decimals());
     }
 
     /**
@@ -94,6 +96,7 @@ contract HealthcareDataToken is ERC20, Ownable {
             dataHash: _dataHash,
             price: _price,
             isForSale: true,
+            isBought: false,
             ownerOfData: msg.sender,
             expiration: _expiration,
             accessList: new address[](0)
@@ -117,11 +120,10 @@ contract HealthcareDataToken is ERC20, Ownable {
      * @param _id The id of the data for which access will be granted.
      * @param _to The address to grant access to.
      */
-    function grantAccess(uint256 _id, address _to)
-        external
-        onlyPatientOrOwner(_id)
-        returns (bool)
-    {
+    function grantAccess(
+        uint256 _id,
+        address _to
+    ) external onlyPatientOrOwner(_id) returns (bool) {
         require(_to != address(0), "Invalid shared address");
         require(
             _to != msg.sender,
@@ -134,16 +136,15 @@ contract HealthcareDataToken is ERC20, Ownable {
         return true;
     }
 
-     /**
+    /**
      * @dev Purchases health data for a patient.
      * @param _patient The address of the patient.
      * @param _dataId The id of the data to be purchased.
      */
-    function purchaseData(address _patient, uint256 _dataId)
-        external
-        payable
-        nonReentrant
-    {
+    function purchaseData(
+        address _patient,
+        uint256 _dataId
+    ) external payable nonReentrant {
         require(_dataId >= 0, "Invalid data ID");
         require(
             msg.value >= healths[_dataId].price,
@@ -167,6 +168,8 @@ contract HealthcareDataToken is ERC20, Ownable {
         _transfer(_patient, msg.sender, healths[_dataId].price);
 
         healths[_dataId].ownerOfData = msg.sender;
+
+        healths[_dataId].isBought = false;
 
         emit DataPurchased(
             msg.sender,
@@ -232,11 +235,10 @@ contract HealthcareDataToken is ERC20, Ownable {
      * @dev Checks if a user exist in an array
      * @return True if user is in array
      */
-    function isAddressInArray(address[] memory array, address target)
-        public
-        pure
-        returns (bool)
-    {
+    function isAddressInArray(
+        address[] memory array,
+        address target
+    ) public pure returns (bool) {
         for (uint256 i = 0; i < array.length; i++) {
             if (array[i] == target) {
                 return true;
@@ -249,10 +251,10 @@ contract HealthcareDataToken is ERC20, Ownable {
      * @dev Retrieves the data of all users.
      * @return All Users data
      */
-    function getAllMyMarketRecords() public view returns (HealthData[] memory) {
+    function getAllMarketRecords() public view returns (HealthData[] memory) {
         uint256 count = 0;
         for (uint256 i = 1; i <= healthRecordCount; i++) {
-            if (healths[i].isForSale == true) {
+            if (healths[i].isForSale == true && healths[i].isBought == true) {
                 count++;
             }
         }
@@ -261,7 +263,7 @@ contract HealthcareDataToken is ERC20, Ownable {
         HealthData[] memory healthArr = new HealthData[](count);
         count = 0;
         for (uint256 i = 1; i <= healthRecordCount; i++) {
-            if (healths[i].isForSale == true) {
+            if (healths[i].isForSale == true && healths[i].isBought == true) {
                 healthArr[count] = healths[i];
                 count++;
             }
