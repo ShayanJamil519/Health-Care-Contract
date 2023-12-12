@@ -229,4 +229,145 @@ describe("HealthcareDataToken", function () {
       healthcareDataTokencontract.connect(user).grantAccess(1, owner.address)
     ).to.be.revertedWith("Unauthorized access");
   });
+  it("should retrieve health records of the caller", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+
+    // Add health records for the patient
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData(
+        "Health Record 1",
+        "hash123",
+        ethers.parseEther("10"),
+        Math.floor(Date.now() / 1000) + 3600
+      );
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData(
+        "Health Record 2",
+        "hash456",
+        ethers.parseEther("20"),
+        Math.floor(Date.now() / 1000) + 7200
+      );
+
+    // Get health records of the patient
+    const patientHealthRecords = await healthcareDataTokencontract
+      .connect(patient)
+      .getAllMyHealthRecords();
+
+    // Check the number of health records
+    expect(patientHealthRecords.length).to.equal(2);
+
+    // Check the details of the first health record
+    expect(patientHealthRecords[0].id).to.equal(1);
+    expect(patientHealthRecords[0].name).to.equal("Health Record 1");
+    expect(patientHealthRecords[0].dataHash).to.equal("hash123");
+    expect(patientHealthRecords[0].price).to.equal(ethers.parseEther("10"));
+    expect(patientHealthRecords[0].isForSale).to.equal(true);
+    expect(patientHealthRecords[0].ownerOfData).to.equal(patient.address);
+    expect(patientHealthRecords[0].expiration).to.be.greaterThan(
+      Math.floor(Date.now() / 1000)
+    );
+
+    // Check the details of the second health record
+    expect(patientHealthRecords[1].id).to.equal(2);
+    expect(patientHealthRecords[1].name).to.equal("Health Record 2");
+    expect(patientHealthRecords[1].dataHash).to.equal("hash456");
+    expect(patientHealthRecords[1].price).to.equal(ethers.parseEther("20"));
+    expect(patientHealthRecords[1].isForSale).to.equal(true);
+    expect(patientHealthRecords[1].ownerOfData).to.equal(patient.address);
+    expect(patientHealthRecords[1].expiration).to.be.greaterThan(
+      Math.floor(Date.now() / 1000)
+    );
+  });
+  it("should retrieve health records shared with the caller", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+
+    // Add health records and grant access to the user
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData(
+        "Health Record 1",
+        "hash123",
+        ethers.parseEther("10"),
+        Math.floor(Date.now() / 1000) + 3600
+      );
+    await healthcareDataTokencontract
+      .connect(patient)
+      .grantAccess(1, user.address);
+
+    // await healthcareDataTokencontract
+    //   .connect(user)
+    //   .addHealthData(
+    //     "Shared Record",
+    //     "sharedHash",
+    //     ethers.utils.parseEther("5"),
+    //     Math.floor(Date.now() / 1000) + 1800
+    //   );
+
+    // Get health records shared with the user
+    const sharedHealthRecords = await healthcareDataTokencontract
+      .connect(user)
+      .getAllRecordsSharedWithMe();
+
+    // Check the number of shared health records
+    expect(sharedHealthRecords.length).to.equal(1);
+
+    // Check the details of the shared health record
+    expect(sharedHealthRecords[0].id).to.equal(1);
+    expect(sharedHealthRecords[0].name).to.equal("Health Record 1");
+    expect(sharedHealthRecords[0].dataHash).to.equal("hash123");
+    expect(sharedHealthRecords[0].price).to.equal(ethers.parseEther("10"));
+    expect(sharedHealthRecords[0].isForSale).to.equal(true);
+    expect(sharedHealthRecords[0].ownerOfData).to.equal(patient.address);
+    expect(sharedHealthRecords[0].expiration).to.be.greaterThan(
+      Math.floor(Date.now() / 1000)
+    );
+    expect(sharedHealthRecords[0].accessList).to.includes(user.address);
+  });
+  it("should return true if specific user is in access list to check working of isAddressInArray function", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+
+    // Add health records and grant access to the user
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData(
+        "Health Record 1",
+        "hash123",
+        ethers.parseEther("10"),
+        Math.floor(Date.now() / 1000) + 3600
+      );
+    await healthcareDataTokencontract
+      .connect(patient)
+      .grantAccess(1, user.address);
+
+    // await healthcareDataTokencontract
+    //   .connect(user)
+    //   .addHealthData(
+    //     "Shared Record",
+    //     "sharedHash",
+    //     ethers.utils.parseEther("5"),
+    //     Math.floor(Date.now() / 1000) + 1800
+    //   );
+
+    // Get health records shared with the user
+    const healthRecord = await healthcareDataTokencontract
+      .connect(patient)
+      .getAllMyHealthRecords();
+
+    // Check the number of shared health records
+    expect(healthRecord.length).to.equal(1);
+
+    // Check the details of the shared health record
+    let isAddressIncluded = await healthcareDataTokencontract
+      .connect(user)
+      .isAddressInArray(healthRecord[0][7], user.address);
+    console.log("isissi", isAddressIncluded);
+
+    //  expect(healthRecords[0].accessList).to.includes(user.address);
+    expect(isAddressIncluded).to.equal(true);
+  });
 });

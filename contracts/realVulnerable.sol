@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 using Math for uint256;
 
-contract HealthcareDataToken is ERC20, Ownable {
+contract HealthcareDataTokenV is ERC20, Ownable {
     /**
      * @title HealthcareDataToken
      * @dev A smart contract for managing healthcare data tokens.
