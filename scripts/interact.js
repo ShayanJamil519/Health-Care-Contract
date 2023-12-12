@@ -55,7 +55,7 @@ async function getWithContract() {
   // Create a contract instance
   const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
-  const transaction = await contract.getAllMyMarketRecords();
+  const transaction = await contract.getAllMarketRecords();
   console.log("Transaction details:", transaction);
 }
 

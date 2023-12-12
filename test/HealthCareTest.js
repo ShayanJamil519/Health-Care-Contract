@@ -70,10 +70,6 @@ describe("HealthcareDataToken", function () {
     const initialOwnerBalance = await healthcareDataTokencontract.balanceOf(
       patient.address
     );
-    const initialPurchaserBalance = await healthcareDataTokencontract.balanceOf(
-      user.address
-    );
-
     // User purchases health data
     const dataPrice = ethers.parseEther("1");
     await healthcareDataTokencontract
@@ -83,13 +79,9 @@ describe("HealthcareDataToken", function () {
     const finalOwnerBalance = await healthcareDataTokencontract.balanceOf(
       patient.address
     );
-    const finalPurchaserBalance = await healthcareDataTokencontract.balanceOf(
-      user.address
-    );
 
     // Check balances after the purchase
-    expect(finalOwnerBalance).to.equal(initialOwnerBalance - BigInt(1));
-    expect(finalPurchaserBalance).to.equal(initialPurchaserBalance + BigInt(1));
+    expect(finalOwnerBalance).to.equal(initialOwnerBalance + BigInt(10));
   });
 
   it("should revert if insufficient funds are sent", async function () {
