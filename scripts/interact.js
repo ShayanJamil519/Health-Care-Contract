@@ -64,7 +64,7 @@ async function getWithContract() {
   //   const expiration = Math.floor(Date.now() / 1000) + 3600;
 
   // Call your contract function
-  const transaction = await contract.getAllUsersData();
+  const transaction = await contract.getAllMyMarketRecords();
 
   //   console.log("Transaction hash:", transaction.hash);
   console.log("Transaction details:", transaction);

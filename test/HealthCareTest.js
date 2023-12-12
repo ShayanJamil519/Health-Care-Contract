@@ -364,28 +364,5 @@ describe("HealthcareDataToken", function () {
       healthcareDataTokenVcontract.connect(user).grantAccess(1, owner.address)
     ).to.not.be.revertedWith("Unauthorized access");
   });
-  // it("should demonstrate overflow or underflow in purchaseData", async function () {
-  //   const { healthcareDataTokenVcontract, owner, patient, user } =
-  //     await deployOneYearLockFixture();
 
-  //   // Add health data for the patient
-  //   await healthcareDataTokenVcontract
-  //     .connect(patient)
-  //     .addHealthData(
-  //       "Health Record 1",
-  //       "hash123",
-  //       2,
-  //       Math.floor(Date.now() / 1000) + 3600
-  //     );
-
-  //   // Set an extreme value for msg.value to cause overflow or underflow
-  //   const extremeValue = ethers.MaxUint256;
-
-  //   // Attempt to purchase data with extreme msg.value
-  //   await expect(
-  //     healthcareDataTokenVcontract
-  //       .connect(user)
-  //       .purchaseData(patient.address, 1, { value: extremeValue })
-  //   ).to.be.revertedWith("SafeMath: multiplication overflow or underflow");
-  // });
 });
