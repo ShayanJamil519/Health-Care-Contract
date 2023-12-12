@@ -16,12 +16,23 @@ describe("HealthcareDataToken", function () {
       "HealthcareDataToken"
     );
     const healthcareDataTokencontract = await HealthcareDataToken.deploy();
+    const HealthcareDataTokenVulnerable = await ethers.getContractFactory(
+      "HealthcareDataTokenVulnerable"
+    );
+    const healthcareDataTokenVcontract =
+      await HealthcareDataTokenVulnerable.deploy();
     // const MC = await ethers.getContractFactory("MaliciousContract");
     // const mcontract = await HealthcareDataToken.deploy();
     //  const malicious = await ethers.getContractFactory("MaliciousContract");
     //  const mcontract = await malicious.deploy();
     // console.log("address", contract);
-    return { healthcareDataTokencontract, owner, patient, user };
+    return {
+      healthcareDataTokencontract,
+      owner,
+      patient,
+      user,
+      healthcareDataTokenVcontract,
+    };
   }
 
   it("should set and get health data", async function () {
@@ -223,6 +234,14 @@ describe("HealthcareDataToken", function () {
   it("should revert if unauthorized user grants access", async function () {
     const { healthcareDataTokencontract, owner, patient, user } =
       await deployOneYearLockFixture();
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData(
+        "Health Record 1",
+        "hash123",
+        ethers.parseEther("10"),
+        Math.floor(Date.now() / 1000) + 3600
+      );
 
     // Unauthorized user attempts to grant access
     await expect(
@@ -400,4 +419,21 @@ describe("HealthcareDataToken", function () {
   //   //  expect(healthRecords[0].accessList).to.includes(user.address);
   //   expect(isAddressIncluded).to.equal(true);
   // });
+  it("should not revert if unauthorized user grants access in vulnerable contract", async function () {
+    const { healthcareDataTokenVcontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+    await healthcareDataTokenVcontract
+      .connect(patient)
+      .addHealthData(
+        "Health Record 1",
+        "hash123",
+        ethers.parseEther("10"),
+        Math.floor(Date.now() / 1000) + 3600
+      );
+
+    // Unauthorized user attempts to grant access
+    await expect(
+      healthcareDataTokenVcontract.connect(user).grantAccess(1, owner.address)
+    ).to.not.be.revertedWith("Unauthorized access");
+  });
 });
