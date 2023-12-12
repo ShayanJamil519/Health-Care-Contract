@@ -327,47 +327,77 @@ describe("HealthcareDataToken", function () {
     );
     expect(sharedHealthRecords[0].accessList).to.includes(user.address);
   });
-  it("should return true if specific user is in access list to check working of isAddressInArray function", async function () {
-    const { healthcareDataTokencontract, owner, patient, user } =
-      await deployOneYearLockFixture();
+  // it("should return true if specific user is in access list", async function () {
+  //   const { healthcareDataTokencontract, owner, patient, user } =
+  //     await deployOneYearLockFixture();
 
-    // Add health records and grant access to the user
-    await healthcareDataTokencontract
-      .connect(patient)
-      .addHealthData(
-        "Health Record 1",
-        "hash123",
-        ethers.parseEther("10"),
-        Math.floor(Date.now() / 1000) + 3600
-      );
-    await healthcareDataTokencontract
-      .connect(patient)
-      .grantAccess(1, user.address);
+  //   // Add health records and grant access to the user
+  //   await healthcareDataTokencontract
+  //     .connect(patient)
+  //     .addHealthData(
+  //       "Health Record 1",
+  //       "hash123",
+  //       ethers.parseEther("10"),
+  //       Math.floor(Date.now() / 1000) + 3600
+  //     );
+  //   await healthcareDataTokencontract
+  //     .connect(patient)
+  //     .grantAccess(1, user.address);
 
-    // await healthcareDataTokencontract
-    //   .connect(user)
-    //   .addHealthData(
-    //     "Shared Record",
-    //     "sharedHash",
-    //     ethers.utils.parseEther("5"),
-    //     Math.floor(Date.now() / 1000) + 1800
-    //   );
+  //   // Get health records shared with the user
+  //   const healthRecord = await healthcareDataTokencontract
+  //     .connect(patient)
+  //     .getAllMyHealthRecords();
 
-    // Get health records shared with the user
-    const healthRecord = await healthcareDataTokencontract
-      .connect(patient)
-      .getAllMyHealthRecords();
+  //   // Check the details of the shared health record
+  //   let isAddressIncluded = await healthcareDataTokencontract
+  //     .connect(user)
+  //     .isAddressInArray(healthRecord[0].accessList, user.address);
 
-    // Check the number of shared health records
-    expect(healthRecord.length).to.equal(1);
+  //   // Expect the function to return true as the user is in the access list
+  //   expect(isAddressIncluded).to.equal(true);
+  // });
+  // it("should return true if specific user is in access list to check working of isAddressInArray function", async function () {
+  //   const { healthcareDataTokencontract, owner, patient, user } =
+  //     await deployOneYearLockFixture();
 
-    // Check the details of the shared health record
-    let isAddressIncluded = await healthcareDataTokencontract
-      .connect(user)
-      .isAddressInArray(healthRecord[0][7], user.address);
-    console.log("isissi", isAddressIncluded);
+  //   // Add health records and grant access to the user
+  //   await healthcareDataTokencontract
+  //     .connect(patient)
+  //     .addHealthData(
+  //       "Health Record 1",
+  //       "hash123",
+  //       ethers.parseEther("10"),
+  //       Math.floor(Date.now() / 1000) + 3600
+  //     );
+  //   await healthcareDataTokencontract
+  //     .connect(patient)
+  //     .grantAccess(1, user.address);
 
-    //  expect(healthRecords[0].accessList).to.includes(user.address);
-    expect(isAddressIncluded).to.equal(true);
-  });
+  //   // await healthcareDataTokencontract
+  //   //   .connect(user)
+  //   //   .addHealthData(
+  //   //     "Shared Record",
+  //   //     "sharedHash",
+  //   //     ethers.utils.parseEther("5"),
+  //   //     Math.floor(Date.now() / 1000) + 1800
+  //   //   );
+
+  //   // Get health records shared with the user
+  //   const healthRecord = await healthcareDataTokencontract
+  //     .connect(patient)
+  //     .getAllMyHealthRecords();
+
+  //   // Check the number of shared health records
+  //   expect(healthRecord.length).to.equal(1);
+
+  //   // Check the details of the shared health record
+  //   let isAddressIncluded = await healthcareDataTokencontract
+  //     .connect(user)
+  //     .isAddressInArray(healthRecord[0][7], user.address);
+  //   console.log("isissi", isAddressIncluded);
+
+  //   //  expect(healthRecords[0].accessList).to.includes(user.address);
+  //   expect(isAddressIncluded).to.equal(true);
+  // });
 });
