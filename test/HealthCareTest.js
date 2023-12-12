@@ -2,16 +2,10 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("HealthcareDataToken", function () {
-  let healthcareDataToken;
-  let owner, patient, user;
-  //    let contract;
-
-  // and reset Hardhat Network to that snapshot in every test.
   async function deployOneYearLockFixture() {
     // Contracts are deployed using the first signer/account by default
     const [owner, patient, user] = await ethers.getSigners();
 
-    // const Lock = await ethers.getContractFactory("Lock");
     const HealthcareDataToken = await ethers.getContractFactory(
       "HealthcareDataToken"
     );
@@ -21,11 +15,6 @@ describe("HealthcareDataToken", function () {
     );
     const healthcareDataTokenVcontract =
       await HealthcareDataTokenVulnerable.deploy();
-    // const MC = await ethers.getContractFactory("MaliciousContract");
-    // const mcontract = await HealthcareDataToken.deploy();
-    //  const malicious = await ethers.getContractFactory("MaliciousContract");
-    //  const mcontract = await malicious.deploy();
-    // console.log("address", contract);
 
     const malicious = await ethers.getContractFactory("MaliciousContract");
     const maliciouscontract = await malicious.deploy(
@@ -53,15 +42,11 @@ describe("HealthcareDataToken", function () {
     await healthcareDataTokencontract
       .connect(patient)
       .addHealthData(name, dataHash, price, expiration);
-    // console.log("patt", patient);
-    // console.log("htt", healthData);
-    // console.log("owner", typeof healthData[0]);
-    // console.log("owner", healthData[0]);
+
     const healthData = await healthcareDataTokencontract
       .connect(patient)
       .getAllMyHealthRecords();
 
-    // console.log("htttype", healthData);
     expect(healthData[0][0]).to.equal(BigInt(1));
     expect(healthData[0][1]).to.equal(name);
     expect(healthData[0][2]).to.equal(dataHash);
@@ -91,8 +76,6 @@ describe("HealthcareDataToken", function () {
     const initialPurchaserBalance = await healthcareDataTokencontract.balanceOf(
       user.address
     );
-    // console.log("initi pa", initialOwnerBalance);
-    // console.log("initi pu", initialPurchaserBalance);
 
     // User purchases health data
     const dataPrice = ethers.parseEther("1");
@@ -107,9 +90,6 @@ describe("HealthcareDataToken", function () {
       user.address
     );
 
-    // console.log("final pa", finalOwnerBalance);
-    // console.log("final pu", finalPurchaserBalance);
-
     // Check balances after the purchase
     expect(finalOwnerBalance).to.equal(initialOwnerBalance - BigInt(1));
     expect(finalPurchaserBalance).to.equal(initialPurchaserBalance + BigInt(1));
@@ -118,8 +98,6 @@ describe("HealthcareDataToken", function () {
   it("should revert if insufficient funds are sent", async function () {
     const { healthcareDataTokencontract, owner, patient, user } =
       await deployOneYearLockFixture();
-    // Assume data is set for sale with a price of 100 wei
-    // await healthcareDataTokencontract.connect(owner).setDataForSale(true);
     const dataHash = "0x123456";
     const name = "mydata";
     const price = ethers.parseEther("100");
@@ -128,8 +106,7 @@ describe("HealthcareDataToken", function () {
     await healthcareDataTokencontract
       .connect(patient)
       .addHealthData(name, dataHash, price, expiration);
-    // console.log("patt", patient);
-    // Buyer attempts to purchase data with insufficient funds
+
     await expect(
       healthcareDataTokencontract
         .connect(user)
@@ -364,5 +341,4 @@ describe("HealthcareDataToken", function () {
       healthcareDataTokenVcontract.connect(user).grantAccess(1, owner.address)
     ).to.not.be.revertedWith("Unauthorized access");
   });
-
 });
