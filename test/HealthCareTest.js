@@ -26,12 +26,18 @@ describe("HealthcareDataToken", function () {
     //  const malicious = await ethers.getContractFactory("MaliciousContract");
     //  const mcontract = await malicious.deploy();
     // console.log("address", contract);
+
+    const malicious = await ethers.getContractFactory("MaliciousContract");
+    const maliciouscontract = await malicious.deploy(
+      healthcareDataTokenVcontract.target
+    );
     return {
       healthcareDataTokencontract,
       owner,
       patient,
       user,
       healthcareDataTokenVcontract,
+      maliciouscontract,
     };
   }
 
@@ -68,8 +74,7 @@ describe("HealthcareDataToken", function () {
   // it("should allow the purchase of health data", async function () {
   //   const { healthcareDataTokencontract, owner, patient, user } =
   //     await deployOneYearLockFixture();
-  //   const initialOwnerBalance = await owner.address.balance;
-  //   const initialPurchaserBalance = await user.address.balance;
+
   //   const dataHash = "0x123456";
   //   const name = "mydata";
   //   const price = ethers.parseEther("1");
@@ -78,6 +83,12 @@ describe("HealthcareDataToken", function () {
   //   await healthcareDataTokencontract
   //     .connect(owner)
   //     .addHealthData(name, dataHash, price, expiration);
+  //   const initialOwnerBalance = await healthcareDataTokencontract.balanceOf(
+  //     owner.address
+  //   );
+  //   const initialPurchaserBalance = await healthcareDataTokencontract.balanceOf(
+  //     user.address
+  //   );
 
   //   // Grant access to the purchaser
   //   // await healthcareDataTokenContract
@@ -85,20 +96,69 @@ describe("HealthcareDataToken", function () {
   //   //   .grantAccess(patient.address, purchaser.address);
 
   //   // Purchase health data
+  //   console.log("balaance owner", initialOwnerBalance);
+  //   console.log("balaance user", initialPurchaserBalance);
   //   const dataPrice = ethers.parseEther("1");
-  //   await expect(
-  //     healthcareDataTokencontract
-  //       .connect(user)
-  //       .purchaseData(owner.address, 1, { value: dataPrice })
-  //   ).to.emit(healthcareDataTokencontract, "DataPurchased");
+  //   await healthcareDataTokencontract
+  //     .connect(user)
+  //     .purchaseData(owner.address, 1, { value: dataPrice });
 
-  //   const finalOwnerBalance = await owner.address.balance;
-  //   const finalPurchaserBalance = await user.address.balance;
+  //   const finalOwnerBalance = await healthcareDataTokencontract.balanceOf(
+  //     owner.address
+  //   );
+  //   const finalPurchaserBalance = await healthcareDataTokencontract.balanceOf(
+  //     user.address
+  //   );
+  //   console.log("balaance owner", finalOwnerBalance);
+  //   console.log("balaance user", finalPurchaserBalance);
 
   //   // Check balances after the purchase
   //   expect(finalOwnerBalance).to.equal(initialOwnerBalance - dataPrice);
   //   expect(finalPurchaserBalance).to.equal(initialPurchaserBalance + dataPrice);
   // });
+  it("should allow the purchase of health data", async function () {
+    const { healthcareDataTokencontract, owner, patient, user } =
+      await deployOneYearLockFixture();
+
+    const dataHash = "0x123456";
+    const name = "mydata";
+    const price = ethers.parseEther("1");
+    const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+
+    // Patient adds health data
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData(name, dataHash, price, expiration);
+
+    const initialOwnerBalance = await healthcareDataTokencontract.balanceOf(
+      patient.address
+    );
+    const initialPurchaserBalance = await healthcareDataTokencontract.balanceOf(
+      user.address
+    );
+    console.log("initi pa", initialOwnerBalance);
+    console.log("initi pu", initialPurchaserBalance);
+
+    // User purchases health data
+    const dataPrice = ethers.parseEther("1");
+    await healthcareDataTokencontract
+      .connect(user)
+      .purchaseData(patient.address, 1, { value: dataPrice });
+
+    const finalOwnerBalance = await healthcareDataTokencontract.balanceOf(
+      patient.address
+    );
+    const finalPurchaserBalance = await healthcareDataTokencontract.balanceOf(
+      user.address
+    );
+
+    console.log("final pa", initialOwnerBalance);
+    console.log("final pu", initialPurchaserBalance);
+
+    // Check balances after the purchase
+    expect(finalOwnerBalance).to.equal(initialOwnerBalance - dataPrice);
+    expect(finalPurchaserBalance).to.equal(initialPurchaserBalance + dataPrice);
+  });
 
   it("should revert if insufficient funds are sent", async function () {
     const { healthcareDataTokencontract, owner, patient, user } =
@@ -132,11 +192,11 @@ describe("HealthcareDataToken", function () {
         "mydata",
         "hash456",
         100,
-        Math.floor(Date.now() / 1000) + 10
+        Math.floor(Date.now() / 1000) + 20
       ); // Expired 1 hour ago
 
     // Buyer attempts to purchase expired data
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+    await new Promise((resolve) => setTimeout(resolve, 21000));
     await expect(
       healthcareDataTokencontract
         .connect(user)
@@ -224,10 +284,6 @@ describe("HealthcareDataToken", function () {
       .connect(patient)
       .getAllMyHealthRecords();
     console.log("acccc", healthData[0][7]);
-
-    // const accessGiven = await healthcareDataTokencontract
-    //   // .connect(patient)
-    //   .isAddressInArray(healthData[0].accessList, user.address);
     expect(healthData[0][7]).to.includes(user.address);
   });
 
@@ -317,16 +373,6 @@ describe("HealthcareDataToken", function () {
       .connect(patient)
       .grantAccess(1, user.address);
 
-    // await healthcareDataTokencontract
-    //   .connect(user)
-    //   .addHealthData(
-    //     "Shared Record",
-    //     "sharedHash",
-    //     ethers.utils.parseEther("5"),
-    //     Math.floor(Date.now() / 1000) + 1800
-    //   );
-
-    // Get health records shared with the user
     const sharedHealthRecords = await healthcareDataTokencontract
       .connect(user)
       .getAllRecordsSharedWithMe();
@@ -346,79 +392,6 @@ describe("HealthcareDataToken", function () {
     );
     expect(sharedHealthRecords[0].accessList).to.includes(user.address);
   });
-  // it("should return true if specific user is in access list", async function () {
-  //   const { healthcareDataTokencontract, owner, patient, user } =
-  //     await deployOneYearLockFixture();
-
-  //   // Add health records and grant access to the user
-  //   await healthcareDataTokencontract
-  //     .connect(patient)
-  //     .addHealthData(
-  //       "Health Record 1",
-  //       "hash123",
-  //       ethers.parseEther("10"),
-  //       Math.floor(Date.now() / 1000) + 3600
-  //     );
-  //   await healthcareDataTokencontract
-  //     .connect(patient)
-  //     .grantAccess(1, user.address);
-
-  //   // Get health records shared with the user
-  //   const healthRecord = await healthcareDataTokencontract
-  //     .connect(patient)
-  //     .getAllMyHealthRecords();
-
-  //   // Check the details of the shared health record
-  //   let isAddressIncluded = await healthcareDataTokencontract
-  //     .connect(user)
-  //     .isAddressInArray(healthRecord[0].accessList, user.address);
-
-  //   // Expect the function to return true as the user is in the access list
-  //   expect(isAddressIncluded).to.equal(true);
-  // });
-  // it("should return true if specific user is in access list to check working of isAddressInArray function", async function () {
-  //   const { healthcareDataTokencontract, owner, patient, user } =
-  //     await deployOneYearLockFixture();
-
-  //   // Add health records and grant access to the user
-  //   await healthcareDataTokencontract
-  //     .connect(patient)
-  //     .addHealthData(
-  //       "Health Record 1",
-  //       "hash123",
-  //       ethers.parseEther("10"),
-  //       Math.floor(Date.now() / 1000) + 3600
-  //     );
-  //   await healthcareDataTokencontract
-  //     .connect(patient)
-  //     .grantAccess(1, user.address);
-
-  //   // await healthcareDataTokencontract
-  //   //   .connect(user)
-  //   //   .addHealthData(
-  //   //     "Shared Record",
-  //   //     "sharedHash",
-  //   //     ethers.utils.parseEther("5"),
-  //   //     Math.floor(Date.now() / 1000) + 1800
-  //   //   );
-
-  //   // Get health records shared with the user
-  //   const healthRecord = await healthcareDataTokencontract
-  //     .connect(patient)
-  //     .getAllMyHealthRecords();
-
-  //   // Check the number of shared health records
-  //   expect(healthRecord.length).to.equal(1);
-
-  //   // Check the details of the shared health record
-  //   let isAddressIncluded = await healthcareDataTokencontract
-  //     .connect(user)
-  //     .isAddressInArray(healthRecord[0][7], user.address);
-  //   console.log("isissi", isAddressIncluded);
-
-  //   //  expect(healthRecords[0].accessList).to.includes(user.address);
-  //   expect(isAddressIncluded).to.equal(true);
-  // });
   it("should not revert if unauthorized user grants access in vulnerable contract", async function () {
     const { healthcareDataTokenVcontract, owner, patient, user } =
       await deployOneYearLockFixture();
@@ -435,5 +408,45 @@ describe("HealthcareDataToken", function () {
     await expect(
       healthcareDataTokenVcontract.connect(user).grantAccess(1, owner.address)
     ).to.not.be.revertedWith("Unauthorized access");
+  });
+  it("should prevent reentrancy attack during purchaseData", async () => {
+    const {
+      healthcareDataTokencontract,
+      maliciouscontract,
+      owner,
+      patient,
+      user,
+    } = await deployOneYearLockFixture();
+
+    // Set health data for the patient
+    await healthcareDataTokencontract
+      .connect(patient)
+      .addHealthData("hash", "Test", 1, Math.floor(Date.now() / 1000) + 1000);
+
+    // Grant access to the user
+    // await healthcareDataToken.connect(patient).grantAccess(1, user.address);
+
+    // User attempts to purchase health data
+    healthcareDataTokencontract
+      .connect(owner)
+      .purchaseData(patient.address, 1, {
+        value: ethers.parseEther("1"),
+      });
+
+    // Malicious contract performs reentrancy attack during the purchase
+    const purchasePromise = await maliciouscontract
+      .connect(user)
+      .performReentrancyAttack(1, patient.address, {
+        value: ethers.parseEther("1"),
+      });
+
+    // Check that the purchase was reverted due to reentrancy attack
+    await expect(purchasePromise).to.be.revertedWith("Reentrant call");
+
+    // Additional check: Ensure that the contract state is not modified
+    // const healthData = await healthcareDataToken
+    //   .connect(patient)
+    //   .getAllMyHealthRecords();
+    // expect(healthData.length).to.equal(1);
   });
 });

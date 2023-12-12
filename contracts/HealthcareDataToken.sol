@@ -99,7 +99,7 @@ contract HealthcareDataToken is ERC20, Ownable {
             accessList: new address[](0)
         });
 
-        // _transfer(owner(), msg.sender, 10);
+        _transfer(address(this), msg.sender, 10);
 
         emit HealthDataUpdated(
             msg.sender,
@@ -164,7 +164,7 @@ contract HealthcareDataToken is ERC20, Ownable {
             "Amount to patient transfer failed"
         );
 
-        // _transfer(_patient, msg.sender, healths[_dataId].price);
+        _transfer(_patient, msg.sender, healths[_dataId].price);
 
         healths[_dataId].ownerOfData = msg.sender;
 
