@@ -5,32 +5,33 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract HealthcareDataTokenLol is ERC20, Ownable {
-    /**
-     * @title HealthcareDataToken
-     * @dev A smart contract for managing healthcare data tokens.
-     */
+contract HealthcareDataToken is ERC20, Ownable {
+    address public contractOwner; // address of contract deployer/owner
+    uint256 public healthRecordCount; //  number of health record uploaded.
+    bool private reentrancyLock = false; // lock to track if the buy function is currently executing
 
-    //state variables
+     using Math for uint256;
+    
+
     struct HealthData {
         string name;
         string dataHash;
         uint256 price;
         bool isForSale;
         address ownerOfData;
-        uint256 expiration; // Timestamp for data expiration
-        address[] accessList; // List of addresses with access to data
+        uint256 expiration;
+        address[] accessList;
     }
-    bool public locked = false;
-    bool private reentrancyLock = false;
-    mapping(address => HealthData) public patientData;
-    uint256 public HealtRecordCount;
-    using Math for uint256;
-    HealthData[] public allUsersData;
 
-    //events
+    constructor() ERC20("HealthcareDataToken", "HDT") Ownable(msg.sender) {
+        _mint(address(this), 1000000 * 10**decimals());
+    }
+
+    mapping(uint256 => HealthData) public healths;
+
     event HealthDataUpdated(
         address indexed patient,
+        uint256 dataId,
         string dataHash,
         uint256 price,
         uint256 expiration
@@ -38,14 +39,11 @@ contract HealthcareDataTokenLol is ERC20, Ownable {
     event DataPurchased(
         address indexed purchaser,
         address indexed patient,
+        uint256 dataId,
         uint256 price
     );
     event AccessGranted(address indexed patient, address indexed user);
     event AccessRevoked(address indexed patient, address indexed user);
-
-    /**
-     * @dev Modifier to prevent reentrant calls.
-     */
 
     modifier nonReentrant() {
         require(!reentrancyLock, "Reentrant call");
@@ -54,218 +52,179 @@ contract HealthcareDataTokenLol is ERC20, Ownable {
         reentrancyLock = false;
     }
 
-    /**
-     * @dev Modifier to restrict access to only the patient or owner.
-     */
-
     modifier onlyPatientOrOwner() {
-        require(
-            msg.sender == patientData[msg.sender].ownerOfData ||
-                msg.sender == owner(),
-            "Unauthorized access"
-        );
+        require(msg.sender == owner(), "Unauthorized access");
         _;
     }
 
-    //functions or methods
-
-    /**
-     * @dev Constructor for the HealthcareDataToken contract.
-     */
-
-    constructor() ERC20("HealthcareDataToken", "HDT") Ownable(msg.sender) {
-        _mint(msg.sender, 1000000 * 10 ** decimals());
-    }
-
-    /**
-     * @dev Sets health data for a patient.
-     * @param _dataHash The hash of the health data.
-     * @param _price The price of the health data.
-     * @param _expiration The timestamp for data expiration.
-     */
-
+    // functions:
     function addHealthData(
         string memory _name,
         string memory _dataHash,
         uint256 _price,
         uint256 _expiration
-    ) external {
+    ) public returns (bool) {
         require(
             _expiration > block.timestamp,
             "Expiration time should be in the future"
         );
-        HealtRecordCount++;
-        // patientData[msg.sender].dataHash = _dataHash;
-        // patientData[msg.sender].price = _price;
-        // patientData[msg.sender].isForSale = true;
-        // patientData[msg.sender].expiration = _expiration;
-        // patientData[msg.sender].ownerOfData = msg.sender;
-        
+        healthRecordCount++;
 
-        HealthData memory newHealthData = HealthData({
-            name:_name,
+        healths[healthRecordCount] = HealthData({
+            name: _name,
             dataHash: _dataHash,
             price: _price,
             isForSale: true,
             ownerOfData: msg.sender,
             expiration: _expiration,
-            accessList: new address[](0) // Initialize an empty access list
-    });
+            accessList: new address[](0)
+        });
 
-    // Update patientData mapping
-    patientData[msg.sender] = newHealthData;
+        // _transfer(owner(), msg.sender, 10);
 
-    // Push the new health data to the allUsersData array
-    allUsersData.push(newHealthData);
-        emit HealthDataUpdated(msg.sender, _dataHash, _price, _expiration);
+        emit HealthDataUpdated(
+            msg.sender,
+            healthRecordCount,
+            _dataHash,
+            _price,
+            _expiration
+        );
+
+        return true;
     }
 
-    /**
-     * @dev Purchases health data for a patient.
-     * @param _patient The address of the patient.
-     */
-    function purchaseData(address _patient) external payable nonReentrant {
-        require(patientData[_patient].isForSale, "Data is not for sale");
+    function grantAccess(uint256 id, address _to)
+        external
+        onlyPatientOrOwner
+        returns (bool)
+    {
+        require(_to != address(0), "Invalid shared address");
         require(
-            msg.value >= patientData[_patient].price,
+            _to != msg.sender,
+            "You can't share with yourself as you are owner of this file"
+        );
+
+        healths[id].accessList.push(_to);
+
+        emit AccessGranted(healths[id].ownerOfData, _to);
+        return true;
+    }
+
+    // buy the data:
+    function purchaseData(address _patient, uint256 _dataId)
+        external
+        payable
+        nonReentrant
+    {
+        require(_dataId >= 0, "Invalid data ID");
+        require(
+            msg.value >= healths[_dataId].price,
             "Insufficient funds to purchase data"
         );
         require(
-            block.timestamp < patientData[_patient].expiration,
+            block.timestamp < healths[_dataId].expiration,
             "Data has expired"
         );
 
-        // uint256 fee = (msg.value * 5) / 100; // 5% fee
-        // uint256 amountToPatient = msg.value - fee;
-        (bool result, uint256 feeInitial) = msg.value.tryMul(5); // 5% fee
+         (bool result, uint256 feeInitial) = msg.value.tryMul(5); // 5% fee
         (bool resultDiv, uint256 fee) = feeInitial.tryDiv(100); // 5% fee
         (bool resultsub, uint256 amountToPatient) = msg.value.trySub(fee);
 
-        (bool success, ) = payable(owner()).call{value: fee}(""); // Transfer fee to contract owner
-        require(success, "Fee transfer failed");
+        require(payable(owner()).send(fee), "Fee transfer failed");
+        require(
+            payable(_patient).send(amountToPatient),
+            "Amount to patient transfer failed"
+        );
 
-        (success, ) = payable(_patient).call{value: amountToPatient}(""); // Transfer funds to the patient
-        require(success, "Amount to patient transfer failed");
-        _transfer(_patient, msg.sender, patientData[_patient].price); // Transfer tokens
-        patientData[_patient].ownerOfData = msg.sender;
+        // _transfer(_patient, msg.sender, healths[_dataId].price);
 
-        emit DataPurchased(msg.sender, _patient, patientData[_patient].price);
+        healths[_dataId].ownerOfData = msg.sender;
+
+        emit DataPurchased(
+            msg.sender,
+            _patient,
+            _dataId,
+            healths[_dataId].price
+        );
     }
 
-    /**
-     * @dev Grants access to health data for a specific user.
-     * @param _patient The address of the patient.
-     * @param _to The address to grant access to.
-     */
-    function grantAccess(
-        address _patient,
-        address _to
-    ) external onlyPatientOrOwner {
-        patientData[_patient].accessList.push(_to);
-        emit AccessGranted(_patient, _to);
-    }
-
-    /**
-     * @dev Revokes access to health data for a specific user.
-     * @param _patient The address of the patient.
-     * @param _to The address to revoke access from.
-     */
-    function revokeAccess(
-        address _patient,
-        address _to
-    ) external onlyPatientOrOwner {
-        address[] storage accessList = patientData[_patient].accessList;
-        for (uint256 i = 0; i < accessList.length; i++) {
-            if (accessList[i] == _to) {
-                // Swap the address to remove with the last address in the list
-                accessList[i] = accessList[accessList.length - 1];
-                // Remove the last element (which is the address to be removed)
-                accessList.pop();
-                emit AccessRevoked(_patient, _to);
-                return; // Exit the function after revoking access
+    // Get all my records
+    function getAllMyHealthRecords() public view returns (HealthData[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 1; i <= healthRecordCount; i++) {
+            if (healths[i].ownerOfData == msg.sender) {
+                count++;
             }
         }
-        revert("Address not found in access list");
+        require(count > 0, "You haven't uploaded any health record yet.");
+
+        HealthData[] memory healthArr = new HealthData[](count);
+        count = 0;
+        for (uint256 i = 1; i <= healthRecordCount; i++) {
+            if (healths[i].ownerOfData == msg.sender) {
+                healthArr[count] = healths[i];
+                count++;
+            }
+        }
+        return healthArr;
     }
 
-    /**
-     * @dev Transfers data to another address with access.
-     * @param _to The address to transfer data to.
-     * @param _amount The amount of data to transfer.
-     */
-    function transferWithAccess(address _to, uint256 _amount) external {
-        require(
-            patientData[msg.sender].price == _amount,
-            "Incorrect amount for data access"
-        );
-        _transfer(msg.sender, _to, _amount);
+    // Record share with me
+    function getAllRecordsSharedWithMe()
+        public
+        view
+        returns (HealthData[] memory)
+    {
+        uint256 count = 0;
+        for (uint256 i = 1; i <= healthRecordCount; i++) {
+            if (isAddressInArray(healths[i].accessList, msg.sender)) {
+                count++;
+            }
+        }
+        require(count > 0, "No health records shared with you.");
+
+        HealthData[] memory healthArr = new HealthData[](count);
+        count = 0;
+        for (uint256 i = 1; i <= healthRecordCount; i++) {
+            if (isAddressInArray(healths[i].accessList, msg.sender)) {
+                healthArr[count] = healths[i];
+                count++;
+            }
+        }
+        return healthArr;
     }
 
-    /**
-     * @dev Gets health data for a given patient.
-     * @param _patient The address of the patient.
-     * @return A tuple containing the owner of the data, data hash, price, sale status, and expiration timestamp.
-     */
-    function getHealthDataOfSinglePatient(
-        address _patient
-    ) external view returns (HealthData memory) {
-        // return (patientData[_patient].ownerOfData,patientData[_patient].dataHash, patientData[_patient].price, patientData[_patient].isForSale, patientData[_patient].expiration);
-        require(
-            patientData[_patient].ownerOfData == msg.sender,
-            "You don't have any data"
-        );
-        return patientData[_patient];
+    function isAddressInArray(address[] memory array, address target)
+        internal
+        pure
+        returns (bool)
+    {
+        for (uint256 i = 0; i < array.length; i++) {
+            if (array[i] == target) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    /**
-     * @dev Retrieves the balance of a specific patient.
-     * @param _patient The address of the patient.
-     * @return The balance of the patient in the token.
-     */
-    function getPatientBalance(
-        address _patient
-    ) external view returns (uint256) {
-        return balanceOf(_patient);
-    }
+    // Get all market records
+    function getAllMyMarketRecords() public view returns (HealthData[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 1; i <= healthRecordCount; i++) {
+            if (healths[i].isForSale == true) {
+                count++;
+            }
+        }
+        require(count > 0, "You haven't uploaded any health record yet.");
 
-    /**
-     * @dev Gets the access list for a given patient.
-     * @param _patient The address of the patient.
-     * @return An array of addresses with access to the patient's data.
-     */
-
-    function getAccessList(
-        address _patient
-    ) external view returns (address[] memory) {
-        return patientData[_patient].accessList;
-    }
-
-    /**
-     * @dev Retrieves the allowance granted to a spender by the owner.
-     * @param _owner The owner's address.
-     * @param _spender The spender's address.
-     * @return The allowance for the spender.
-     */
-    function getAllowance(
-        address _owner,
-        address _spender
-    ) external view returns (uint256) {
-        return allowance(_owner, _spender);
-    }
-
-    /**
-     * @dev Retrieves the total supply of the token.
-     * @return The total supply of the token.
-     */
-    function getTotalSupply() external view returns (uint256) {
-        return totalSupply();
-    }
-
-    /**
-     * @dev Retrieves the data of all users.
-     * @return All Users data
-     */
-    function getAllUsersData() external view returns (HealthData[] memory) {
-        return allUsersData;
+        HealthData[] memory healthArr = new HealthData[](count);
+        count = 0;
+        for (uint256 i = 1; i <= healthRecordCount; i++) {
+            if (healths[i].isForSale == true) {
+                healthArr[count] = healths[i];
+                count++;
+            }
+        }
+        return healthArr;
     }
 }
