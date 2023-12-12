@@ -32,6 +32,7 @@ describe("HealthcareDataToken", function () {
     const name = "mydata";
     const price = 1;
     const isForSale = true;
+    const isBought = false;
     const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
 
     await healthcareDataTokencontract
@@ -47,8 +48,9 @@ describe("HealthcareDataToken", function () {
     expect(healthData[0][2]).to.equal(dataHash);
     expect(healthData[0][3]).to.equal(price);
     expect(healthData[0][4]).to.equal(isForSale);
-    expect(healthData[0][5]).to.equal(patient.address);
-    expect(healthData[0][6]).to.equal(expiration);
+    expect(healthData[0][5]).to.equal(isBought);
+    expect(healthData[0][6]).to.equal(patient.address);
+    expect(healthData[0][7]).to.equal(expiration);
   });
 
   it("should allow the purchase of health data", async function () {
@@ -153,7 +155,7 @@ describe("HealthcareDataToken", function () {
       .connect(patient)
       .getAllMyHealthRecords();
     console.log("acccc", healthData[0][7]);
-    expect(healthData[0][7]).to.includes(user.address);
+    expect(healthData[0][8]).to.includes(user.address);
   });
 
   it("should revert if unauthorized user grants access", async function () {

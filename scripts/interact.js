@@ -48,8 +48,8 @@ async function getWithContract() {
   );
 
   // Replace with your private key
-  const privateKey =
-    "0xdd388ef52890344bd50d0c08550b53386187686afb73b5f6b5335c1b71ac6380";
+  const privateKey = process.env.PRIVATE_KEY;
+
   const wallet = new ethers.Wallet(privateKey, ganacheProvider);
 
   // Create a contract instance
