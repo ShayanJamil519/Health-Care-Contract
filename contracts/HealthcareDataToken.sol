@@ -165,11 +165,11 @@ contract HealthcareDataToken is ERC20, Ownable {
             "Amount to patient transfer failed"
         );
 
-        _transfer(_patient, msg.sender, healths[_dataId].price);
+        _transfer(address(this), healths[_dataId].ownerOfData, 10);
 
         healths[_dataId].ownerOfData = msg.sender;
 
-        healths[_dataId].isBought = false;
+        healths[_dataId].isBought = true;
 
         emit DataPurchased(
             msg.sender,
@@ -254,7 +254,7 @@ contract HealthcareDataToken is ERC20, Ownable {
     function getAllMarketRecords() public view returns (HealthData[] memory) {
         uint256 count = 0;
         for (uint256 i = 1; i <= healthRecordCount; i++) {
-            if (healths[i].isForSale == true && healths[i].isBought == true) {
+            if (healths[i].isBought == false) {
                 count++;
             }
         }
@@ -263,7 +263,7 @@ contract HealthcareDataToken is ERC20, Ownable {
         HealthData[] memory healthArr = new HealthData[](count);
         count = 0;
         for (uint256 i = 1; i <= healthRecordCount; i++) {
-            if (healths[i].isForSale == true && healths[i].isBought == true) {
+            if (healths[i].isBought == false) {
                 healthArr[count] = healths[i];
                 count++;
             }
