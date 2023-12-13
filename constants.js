@@ -1,5 +1,5 @@
 // Replace with your contract address and ABI
-const contractAddress = "0x81fC64d483E7EDb59304b25E1362f2f9Af6EE4ea";
+const contractAddress = "0x6A4270a4f9d6bBe41B8cee6f330568ad5a6be9BD";
 const contractABI = [
   {
     inputs: [],
@@ -418,6 +418,66 @@ const contractABI = [
   },
   {
     inputs: [],
+    name: "getAllMarketRecords",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "id",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "name",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "dataHash",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "price",
+            type: "uint256",
+          },
+          {
+            internalType: "bool",
+            name: "isForSale",
+            type: "bool",
+          },
+          {
+            internalType: "bool",
+            name: "isBought",
+            type: "bool",
+          },
+          {
+            internalType: "address",
+            name: "ownerOfData",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "expiration",
+            type: "uint256",
+          },
+          {
+            internalType: "address[]",
+            name: "accessList",
+            type: "address[]",
+          },
+        ],
+        internalType: "struct HealthcareDataToken.HealthData[]",
+        name: "",
+        type: "tuple[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "getAllMyHealthRecords",
     outputs: [
       {
@@ -448,58 +508,8 @@ const contractABI = [
             type: "bool",
           },
           {
-            internalType: "address",
-            name: "ownerOfData",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "expiration",
-            type: "uint256",
-          },
-          {
-            internalType: "address[]",
-            name: "accessList",
-            type: "address[]",
-          },
-        ],
-        internalType: "struct HealthcareDataToken.HealthData[]",
-        name: "",
-        type: "tuple[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "getAllMyMarketRecords",
-    outputs: [
-      {
-        components: [
-          {
-            internalType: "uint256",
-            name: "id",
-            type: "uint256",
-          },
-          {
-            internalType: "string",
-            name: "name",
-            type: "string",
-          },
-          {
-            internalType: "string",
-            name: "dataHash",
-            type: "string",
-          },
-          {
-            internalType: "uint256",
-            name: "price",
-            type: "uint256",
-          },
-          {
             internalType: "bool",
-            name: "isForSale",
+            name: "isBought",
             type: "bool",
           },
           {
@@ -555,6 +565,11 @@ const contractABI = [
           {
             internalType: "bool",
             name: "isForSale",
+            type: "bool",
+          },
+          {
+            internalType: "bool",
+            name: "isBought",
             type: "bool",
           },
           {
@@ -651,6 +666,11 @@ const contractABI = [
       {
         internalType: "bool",
         name: "isForSale",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "isBought",
         type: "bool",
       },
       {
