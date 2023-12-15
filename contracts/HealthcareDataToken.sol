@@ -47,7 +47,6 @@ contract HealthcareDataToken is ERC20, Ownable {
     event AccessRevoked(address indexed patient, address indexed user);
 
     //modifiers
-
     modifier nonReentrant() {
         require(!reentrancyLock, "Reentrant call");
         reentrancyLock = true;
@@ -112,6 +111,27 @@ contract HealthcareDataToken is ERC20, Ownable {
             _expiration
         );
 
+        return true;
+    }
+
+    /**
+     * @dev Transfers tokens from one address to another.
+     * @param _sender The address to transfer tokens from.
+     * @param _recipient The address to transfer tokens to.
+     * @param _amount The amount of tokens to transfer.
+     * @return A boolean indicating the success of the transfer.
+     */
+    function transferFrom(
+        address _sender,
+        address _recipient,
+        uint256 _amount
+    ) public override returns (bool) {
+        _transfer(_sender, _recipient, _amount);
+        _approve(
+            _sender,
+            _msgSender(),
+            allowance(_sender, _msgSender()) - _amount
+        );
         return true;
     }
 
