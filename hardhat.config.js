@@ -4,7 +4,7 @@ require("dotenv").config();
 /** @type import('hardhat/config').HardhatUserConfig */
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
 const PRIVATE_KEY = process.env.METAMASK_ACCOUNT_PRIVATE_KEY;
-// const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
 // const COINMARKET_API_KEY = process.env.COINMARKET_API_KEY;
 module.exports = {
   solidity: {
@@ -14,6 +14,12 @@ module.exports = {
       },
     ],
   },
+
+  etherscan: {
+    apiKey: ETHERSCAN_API_KEY,
+    customChains: [],
+  },
+
   networks: {
     localganache: {
       url: process.env.PROVIDER_URL,
